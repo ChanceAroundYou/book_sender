@@ -1,0 +1,6 @@
+.python-version
+.env
+downloads/
+__pycache__/
+celerybeat*
+.vscode/
