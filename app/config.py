@@ -1,10 +1,44 @@
+# 加载环境变量
 import os
+from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
-load_dotenv()
+
+def load_env_file(env_file: Optional[str] = None) -> None:
+    """加载环境变量文件
+    
+    Args:
+        env_file: 环境变量文件路径，如果为 None，则按以下顺序查找：
+                 1. .env.local
+                 2. .env
+    """
+    if env_file:
+        # 如果指定了文件，直接加载
+        load_dotenv(env_file)
+        return
+
+    # 获取项目根目录
+    root_dir = Path(__file__).parent.parent
+    
+    # 按优先级查找环境变量文件
+    env_files = [
+        root_dir / '.env.local',  # 本地开发环境
+        root_dir / '.env',        # 默认环境
+    ]
+    
+    # 加载找到的第一个环境变量文件
+    for env_path in env_files:
+        if env_path.exists():
+            load_dotenv(env_path)
+            print(f"已加载环境变量文件: {env_path}")
+            return
+            
+    print("警告: 未找到环境变量文件，将使用默认值") 
+
+load_env_file()
 
 class Settings(BaseSettings):
     # 基础配置
@@ -17,10 +51,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # 数据库配置
-    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
+    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "book_sender")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "")
     DATABASE_URL: str = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}/{POSTGRES_DB}"
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
 
@@ -74,5 +108,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        case_sensitive = True  # 区分大小写
+        env_file_encoding = 'utf-8'  # 确保正确的文件编码
 
 settings = Settings() 
