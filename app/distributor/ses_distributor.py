@@ -5,6 +5,7 @@ from typing import List, Optional
 import boto3
 from botocore.config import Config
 from botocore.exceptions import (BotoCoreError, ClientError,
+                                 ConnectionClosedError,
                                  EndpointConnectionError)
 from loguru import logger
 
@@ -26,11 +27,13 @@ class SESDistributor(BaseDistributor):
         config = Config(
             region_name=self.aws_region,
             retries={
-                'max_attempts': 3,
-                'mode': 'standard'
+                'max_attempts': 5,
+                'mode': 'adaptive'
             },
-            connect_timeout=5,
-            read_timeout=10
+            connect_timeout=10,
+            read_timeout=180,
+            max_pool_connections=10,
+            tcp_keepalive=True
         )
         
         try:
@@ -40,7 +43,6 @@ class SESDistributor(BaseDistributor):
                 aws_secret_access_key=self.aws_secret_access_key,
                 config=config
             )
-            
             # 验证 SES 客户端
             self._verify_ses_client()
             
@@ -91,19 +93,36 @@ class SESDistributor(BaseDistributor):
                 logger.info("AWS 凭证无效")
             raise RuntimeError("AWS SES 配置无效，请检查凭证和权限设置") from e
 
-    def _send_email(self, msg: MIMEMultipart, email: str) -> dict:
+    def _send_email(self, msg: MIMEMultipart, email: str) -> bool:
         """发送邮件"""
         try:
             logger.debug(f"正在发送邮件到 {email}")
             logger.debug(f"发件人: {self.sender_email}")
-            logger.debug(f"邮件大小: {len(msg.as_string())} bytes")
             
-            response = self.ses_client.send_raw_email(
-                Source=self.sender_email,
-                Destinations=[email],
-                RawMessage={'Data': msg.as_string()}
-            )
-            return response
+            # 获取邮件大小
+            email_size = len(msg.as_string())
+            logger.debug(f"邮件大小: {email_size / 1024 / 1024:.2f}MB")
+            
+            # 检查邮件大小
+            if email_size > 10 * 1024 * 1024:  # 10MB
+                logger.warning("邮件大小超过10MB，将使用云存储预签名URL")
+                return False
+            
+            # 尝试发送邮件
+            for attempt in range(3):
+                try:
+                    response = self.ses_client.send_raw_email(
+                        Source=self.sender_email,
+                        Destinations=[email],
+                        RawMessage={'Data': msg.as_string()}
+                    )
+                    logger.debug(f"邮件发送成功，MessageId: {response.get('MessageId')}")
+                    return True
+                except ConnectionClosedError as e:
+                    if attempt < 2:
+                        logger.warning(f"连接被关闭，正在重试 ({attempt + 1}/3), 错误信息: {e}")
+                        continue
+                    raise
             
         except EndpointConnectionError as e:
             logger.error(f"发送邮件时连接失败: {str(e)}")
@@ -118,7 +137,8 @@ class SESDistributor(BaseDistributor):
                 if 'Email address is not verified' in error_message:
                     logger.info(f"请确保邮箱 {email} 已在 AWS SES 中验证（沙箱模式下需要验证所有收件人）")
                 elif 'Maximum message size exceeded' in error_message:
-                    logger.info("邮件大小超过限制（最大 10MB）")
+                    logger.info("邮件大小超过限制（最大 10MB），将使用云存储预签名URL")
+                    return False
             elif error_code == 'InvalidParameterValue':
                 logger.info("邮件格式无效，请检查邮件内容")
             raise
@@ -133,13 +153,11 @@ class SESDistributor(BaseDistributor):
                        message: Optional[str] = None) -> bool:
         """发送单本书籍"""
         try:
-            msg = self.create_book_email(book_dict, email, subject, message)
-            response = self._send_email(msg, email)
-            logger.info(f"成功发送邮件：{email}，MessageId: {response['MessageId']}")
-            return True
+            msg = await self.create_book_email(book_dict, email, subject, message)
+            return self._send_email(msg, email)
         except Exception as e:
-            logger.error(f"发送邮件失败: {str(e)}")
-            raise e
+            logger.error(f"发送书籍失败: {str(e)}")
+            raise
 
     async def send_books(self, 
                         book_dicts: List[dict], 
@@ -148,10 +166,8 @@ class SESDistributor(BaseDistributor):
                         message: Optional[str] = None) -> bool:
         """批量发送多本书籍"""
         try:
-            msg = self.create_books_email(book_dicts, email, subject, message)
-            response = self._send_email(msg, email)
-            logger.info(f"成功发送邮件：{email}，MessageId: {response['MessageId']}")
-            return True
+            msg = await self.create_books_email(book_dicts, email, subject, message)
+            return self._send_email(msg, email)
         except Exception as e:
-            logger.error(f"发送邮件失败: {str(e)}")
-            raise e
+            logger.error(f"发送书籍失败: {str(e)}")
+            raise

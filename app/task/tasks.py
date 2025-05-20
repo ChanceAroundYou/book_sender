@@ -3,18 +3,19 @@ import asyncio
 from loguru import logger
 
 from app.celery_app import celery_app
-from app.database import get_db, Book
+from app.config import settings
 from app.crawler import create_crawler
+from app.database import Book, BookCategory, get_db
 from app.distributor import create_distributor
 from app.downloader import create_downloader
 from app.task.base import BaseTask
 
 
 @celery_app.task(bind=True, base=BaseTask)
-def crawl_books(self, book_category: str, page: int = 1):
+def crawl_books_task(self: BaseTask, category: str, page: int = 1):
     """爬取书籍列表任务"""
     async def _task():
-        async with create_crawler(book_category) as crawler:
+        async with create_crawler(BookCategory.simplify_category(category)) as crawler:
             book_dicts = await crawler.get_books(page)
         
         if not book_dicts:
@@ -34,7 +35,7 @@ def crawl_books(self, book_category: str, page: int = 1):
                     book_db = Book.create(db, **book_dict)
                     logger.info(f"Book {book_db.title} added to the database.")
 
-            crawl_book.delay(book_category, book_dict)
+            crawl_book_task.delay(category, book_dict)
 
         logger.info(f"Book list page {page} is crawled.")
 
@@ -42,7 +43,7 @@ def crawl_books(self, book_category: str, page: int = 1):
 
 
 @celery_app.task(bind=True, base=BaseTask)
-def crawl_book(self, book_category: str, book_dict: dict):
+def crawl_book_task(self: BaseTask, category: str, book_dict: dict):
     """爬取书籍详情任务"""
     async def _task(book_dict):
         detail_link = book_dict.get("detail_link", "")
@@ -60,7 +61,7 @@ def crawl_book(self, book_category: str, book_dict: dict):
                 return
             book_dict = book.to_dict()
 
-        async with create_crawler(book_category) as crawler:
+        async with create_crawler(BookCategory.simplify_category(category)) as crawler:
             book_dict = await crawler.get_book(book_dict)
             if not book_dict.get("download_link", ""):
                 logger.warning("Book detail is not found.")
@@ -77,7 +78,7 @@ def crawl_book(self, book_category: str, book_dict: dict):
 
 
 @celery_app.task(bind=True, base=BaseTask)
-def download_book(self, book_category: str, book_dict: dict):
+def download_book_task(self: BaseTask, book_dict: dict):
     """下载书籍任务"""
     async def _task(book_dict):
         download_link = book_dict.get("download_link", "")
@@ -95,7 +96,7 @@ def download_book(self, book_category: str, book_dict: dict):
                 return
             book_dict = book.to_dict()
 
-        downloader = create_downloader(book_category)
+        downloader = create_downloader(settings.DOWNLOADER_TYPE)
         book_dict = await downloader.download_book(book_dict)
         file_size = book_dict.get("file_size", 0)
         file_path = book_dict.get("file_path", "")
@@ -114,11 +115,11 @@ def download_book(self, book_category: str, book_dict: dict):
 
 
 @celery_app.task(bind=True, base=BaseTask)
-def send_book(self, task_type: str, book_dict: dict, email: str = None):
+def distribute_book_task(self: BaseTask, book_dict: dict, email: str = None):
     """分发书籍任务"""
     async def _task(book_dict):
         try:
-            distributor = create_distributor(task_type)
+            distributor = create_distributor(settings.DISTRIBUTOR_TYPE)
 
             if book_dict.get("file_size", 0) == 0:
                 logger.warning(f"书籍 {book_dict.get('title')} 未下载")
@@ -130,9 +131,9 @@ def send_book(self, task_type: str, book_dict: dict, email: str = None):
                 raise Exception('分发失败')
 
             with get_db() as db:
-                book_db = Book.query(db, download_link=book_dict['download_link'], first=True)
-                if book_db:
-                    book_db.distributed(email=email)
+                book = Book.query(db, download_link=book_dict['download_link'], first=True)
+                if book:
+                    book.distributed(email=email)
                     logger.info(f"Successfully distributed book: {book_dict['title']}")
 
         except Exception as e:
@@ -143,16 +144,16 @@ def send_book(self, task_type: str, book_dict: dict, email: str = None):
 
 
 @celery_app.task(bind=True, base=BaseTask)
-def send_books(self, task_type: str, book_dicts: list[dict], email: str = None):
-    """分发书籍任务"""
+def distribute_books_task(self: BaseTask, book_dicts: list[dict], email: str = None):
+    """批量分发书籍任务"""
     async def _task(book_dicts):
         try:
-            distributor = create_distributor(task_type)
+            distributor = create_distributor(settings.DISTRIBUTOR_TYPE)
 
             book_dicts = [book_dict for book_dict in book_dicts if book_dict.get("file_size", 0) > 0]
             
             if not book_dicts:
-                logger.warning(f"没有书籍需要分发")
+                logger.warning("没有书籍需要分发")
                 return
 
             success = await distributor.send_books(book_dicts, email)
@@ -161,9 +162,9 @@ def send_books(self, task_type: str, book_dicts: list[dict], email: str = None):
 
             with get_db() as db:
                 for book_dict in book_dicts:
-                    book_db = Book.query(db, download_link=book_dict['download_link'], first=True)
-                    if book_db:
-                        book_db.distributed(email=email)
+                    book = Book.query(db, download_link=book_dict['download_link'], first=True)
+                    if book:
+                        book.distributed(email=email)
 
             logger.info(f"成功分发书籍: {len(book_dicts)}本")
 

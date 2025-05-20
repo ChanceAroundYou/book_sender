@@ -23,59 +23,70 @@ class SMTPDistributor(BaseDistributor):
 
     def _send_email(self, msg: MIMEMultipart, email: str) -> bool:
         """发送邮件"""
-        with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
-            server.login(self.smtp_username, self.smtp_password)
-            server.send_message(msg)
+        logger.debug(f"正在发送邮件到 {email}")
+        logger.debug(f"发件人: {self.sender_email}")
+        
+        # 获取邮件大小
+        email_size = len(msg.as_string())
+        logger.debug(f"邮件大小: {email_size / 1024 / 1024:.2f}MB")
+
+        # 最大重试次数
+        max_retries = 3
+        retry_count = 0
+
+        while retry_count < max_retries:
+            try:
+                logger.debug(f"尝试发送邮件 (第{retry_count + 1}次)")
+                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+                    logger.debug("已建立SMTP SSL连接")
+                    server.login(self.smtp_username, self.smtp_password)
+                    logger.debug("SMTP登录成功")
+                    server.send_message(msg)
+                    logger.info(f"邮件发送成功: {email}")
+                return True
+
+            except smtplib.SMTPAuthenticationError as e:
+                logger.error(f"SMTP认证失败: {str(e)}")
+                raise
+
+            except (smtplib.SMTPServerDisconnected, ConnectionError) as e:
+                retry_count += 1
+                if retry_count < max_retries:
+                    logger.warning(f"连接断开，正在重试 ({retry_count}/{max_retries}): {str(e)}")
+                    continue
+                logger.error(f"重试{max_retries}次后仍然失败")
+                raise
+
+            except smtplib.SMTPException as e:
+                logger.error(f"SMTP错误: {str(e)}")
+                raise
+
+            except Exception as e:
+                logger.error(f"发送邮件时发生未知错误: {str(e)}")
+                raise
 
     async def send_book(self, 
                        book_dict: dict, 
                        email: str,
                        subject: Optional[str] = None,
                        message: Optional[str] = None) -> bool:
-        """
-        发送单本书籍到指定邮箱
-        
-        Args:
-            book_dict: 书籍字典
-            email: 收件人邮箱
-            subject: 邮件主题
-            message: 邮件正文
-            
-        Returns:
-            bool: 发送是否成功
-        """
+        """发送单本书籍"""
         try:
-            # 创建邮件对象
-            msg = self.create_book_email(book_dict, email, subject, message)
-            self._send_email(msg, email)
-            logger.info(f"成功发送邮件：{email}")
-            return True
+            msg = await self.create_book_email(book_dict, email, subject, message)
+            return self._send_email(msg, email)
         except Exception as e:
-            logger.error(f"发送邮件失败: {str(e)}")
-            raise e
+            logger.error(f"发送书籍失败: {str(e)}")
+            raise
             
     async def send_books(self, 
                         book_dicts: List[dict], 
                         email: str,
                         subject: Optional[str] = None,
                         message: Optional[str] = None) -> bool:
-        """
-        批量发送多本书籍到指定邮箱
-        
-        Args:
-            book_dicts: 书籍字典列表
-            email: 收件人邮箱
-            subject: 邮件主题
-            message: 邮件正文
-            
-        Returns:
-            bool: 发送是否成功
-        """
+        """批量发送多本书籍"""
         try:
-            msg = self.create_books_email(book_dicts, email, subject, message)
-            self._send_email(msg, email)
-            logger.info(f"成功发送邮件：{email}")
-            return True
+            msg = await self.create_books_email(book_dicts, email, subject, message)
+            return self._send_email(msg, email)
         except Exception as e:
-            logger.error(f"发送邮件失败: {str(e)}")
-            raise e
+            logger.error(f"发送书籍失败: {str(e)}")
+            raise

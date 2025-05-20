@@ -1,11 +1,13 @@
-from typing import Type, TypeVar
+from typing import Type, overload, Literal
 
 from app.crawler.base import BaseCrawler
 from app.crawler.economist_crawler import EconomistCrawler
 
-T = TypeVar('T', bound=BaseCrawler)
+@overload
+def create_crawler(crawler_type: Literal['economist'], *args, **kwargs) -> EconomistCrawler:
+    ...
 
-def create_crawler(crawler_type: str, *args, **kwargs) -> T:
+def create_crawler(crawler_type: str, *args, **kwargs) -> BaseCrawler:
     """创建爬虫实例
     
     Args:
@@ -14,7 +16,7 @@ def create_crawler(crawler_type: str, *args, **kwargs) -> T:
     Returns:
         BaseCrawler: 爬虫实例，具体类型取决于 crawler_type
     """
-    crawler_map: dict[str, Type[T]] = {
+    crawler_map: dict[str, Type[BaseCrawler]] = {
         'economist': EconomistCrawler,
     }
     if crawler_type not in crawler_map:

@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any, Dict, Optional, Protocol
+from typing import Any, Dict, Optional
 
 from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import Session, relationship
@@ -7,22 +7,7 @@ from sqlalchemy.orm import Session, relationship
 from app.database.base import BaseModel, ModelMixin
 from app.database.user import User
 from app.database.user_book import UserBook, UserBookStatus
-
-class BookInterface(Protocol):
-    """书籍接口，定义所有书籍类必须实现的属性和方法"""
-    title: str
-    date: str
-    author: str
-    summary: str
-    cover_link: str
-    detail_link: str
-    download_link: str
-    category: str
-    file_path: str
-    file_size: int
-    file_format: str
-    downloaded_at: datetime
-
+from app.database.category import BookCategory
 
 class BookFormat:
     """书籍格式枚举"""
@@ -30,11 +15,9 @@ class BookFormat:
     EPUB = "epub"
     MOBI = "mobi"
     TXT = "txt"
-    COMPRESSED = "7z"
-
 
 class Book(BaseModel, ModelMixin['Book']):
-    """数据库书籍模型，实现 BookInterface"""
+    """数据库书籍模型"""
     __tablename__ = "books"
 
     title = Column(String(200), index=True)
@@ -71,24 +54,25 @@ class Book(BaseModel, ModelMixin['Book']):
         } for ub in self.user_books]
         return base_dict
 
-    # @classmethod
-    # def from_book(cls, book_dict: dict) -> 'Book':
-    #     """从任何实现了 BookInterface 的对象创建数据库模型"""
-    #     return cls(**book_dict)
-
     @classmethod
     def create(cls, db: Session, **kwargs) -> 'Book':
         """创建书籍并处理用户订阅关系"""
+        title = kwargs.get('title')
+        if not title:
+            raise ValueError("书籍标题不能为空")
+        category = BookCategory.get_category(title)
+        kwargs['category'] = category
+
         book = super().create(db, **kwargs)
         users = User.query(db)
         
         for user in users:
-            subscription = user.get_subscription(book.category)
+            subscription = user.get_subscription(category)
             if not subscription:
                 continue
 
             date = subscription['subscribe_date']
-            status = UserBookStatus.PENDING if book.date > date else UserBookStatus.DISTRIBUTED
+            status = UserBookStatus.PENDING if datetime.strptime(book.date, "%Y-%m-%d") > datetime.strptime(date, "%Y-%m-%d") else UserBookStatus.DISTRIBUTED
             
             user_book = UserBook.query(db, user_id=user.id, book_id=book.id, first=True)
             if not user_book:
@@ -97,6 +81,12 @@ class Book(BaseModel, ModelMixin['Book']):
                 user_book.update(status=status)
 
         return book
+    
+    def update(self, **kwargs):
+        kwargs.pop("user_books", None)
+        kwargs.pop("users", None)
+        super().update(**kwargs)
+        
 
     def downloaded(self, file_path: str, file_size: int, file_format: str) -> None:
         """实现接口方法：更新下载状态"""
@@ -135,10 +125,3 @@ class Book(BaseModel, ModelMixin['Book']):
             self.db.delete(user_book)
         super().delete()
 
-    def compressed(self, file_path: str, file_size: int) -> None:
-        """压缩后更新文件信息"""
-        self.update(
-            file_path=file_path,
-            file_size=file_size,
-            file_format=BookFormat.COMPRESSED
-        )

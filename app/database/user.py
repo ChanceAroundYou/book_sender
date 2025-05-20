@@ -4,8 +4,8 @@ from sqlalchemy.orm import relationship
 
 from app.database.base import BaseModel, ModelMixin
 from app.database.user_book import UserBook, UserBookStatus
-
-
+from app.database.category import BookCategory
+from loguru import logger
 class UserRole:
     ADMIN = "admin"
     USER = "user"
@@ -40,20 +40,39 @@ class User(BaseModel, ModelMixin['User']):
         } for ub in self.user_books]
         return d
     
+    def update(self, **kwargs):
+        kwargs.pop("books", None)
+        kwargs.pop("user_books", None)
+        super().update(**kwargs)
+    
     def get_subscription(self, category: str):
+        if not BookCategory.check_category(category):
+            logger.warning(f"分类 {category} 不存在")
+            return
+
         for subscription in self.subscriptions:
             if subscription["category"] == category:
                 return subscription
         return None
 
     def add_subscription(self, category: str, subscribe_date: str = datetime.now(UTC).strftime("%Y-%m-%d")):
-        if self.get_subscription(category):
+        from app.database.book import Book
+
+        subscription = self.get_subscription(category)
+        if subscription and subscription["subscribe_date"] == subscribe_date:
+            return
+
+        if not BookCategory.check_category(category):
+            logger.warning(f"分类 {category} 不存在")
             return
 
         self.update(subscriptions=[*self.subscriptions, {
             "category": category,
             "subscribe_date": subscribe_date
         }])
+        books = Book.query(self.db, category=category)
+        for book in books:
+            self.add_book(book)
 
     def remove_subscription(self, category: str):
         from app.database.book import Book
@@ -89,7 +108,7 @@ class User(BaseModel, ModelMixin['User']):
             status = UserBookStatus.PENDING
         
         user_book = UserBook.create(self.db, user_id=self.id, book_id=book.id, status=status)
-        self.update(user_books=[*self.user_books, user_book])
+        # self.update(user_books=[*self.user_books, user_book])
         return user_book
     
     def remove_book(self, book):

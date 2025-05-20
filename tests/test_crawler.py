@@ -1,47 +1,97 @@
-import asyncio
 import logging
+from pathlib import Path
+from typing import AsyncGenerator
+
+import pytest
+import pytest_asyncio
 
 from app.crawler.economist_crawler import EconomistCrawler
-from app.downloader.economist_downloader import EconomistDownloader
+from app.downloader.economist_downloader import FileDownloader
 
 # 配置日志
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-async def test_crawler():
-    """测试爬虫功能 (异步 Playwright 版)"""
-    try:
-        async with EconomistCrawler() as crawler:
-            print("\n测试获取杂志列表...")
-            books = await crawler.get_books(page=1)
-            print(f"找到 {len(books)} 期杂志")
-            if books:
-                print("\n杂志列表:")
-                for book in books:
-                    print(f"标题: {book.title}")
-                    print(f"链接: {book.detail_link}")
-                    print(f"日期: {book.date}")
-                    print(f"封面图：{book.cover_link}")
-                    print("-" * 50)
 
-                print("\n测试获取下载链接...")
-                book = books[0]
-                book = await crawler.get_book(book)
-                print(f"下载链接: {book.download_link}")
-                if book.download_link:
-                    print("\n测试下载杂志...")
-                    downloader = EconomistDownloader()
-                    book = downloader.download_book(book)
-                    if book.file_path:
-                        print(f"成功下载: {book.title}")
-                        print(f"文件路径: {book.file_path}")
+@pytest_asyncio.fixture
+async def crawler() -> AsyncGenerator[EconomistCrawler, None]:
+    """创建爬虫实例的 fixture"""
+    async with EconomistCrawler() as crawler:
+        yield crawler
 
-    except Exception as e:
-        print(f"测试过程中出现错误: {str(e)}")
-        import traceback
-        print(traceback.format_exc())
 
-if __name__ == "__main__":
-    asyncio.run(test_crawler()) 
+@pytest.mark.asyncio
+async def test_get_books(crawler: EconomistCrawler):
+    """测试获取杂志列表"""
+    book_dicts = await crawler.get_books(page=1)
+    assert book_dicts is not None
+    assert len(book_dicts) > 0
+
+    # 验证每本书的基本信息
+    for book_dict in book_dicts:
+        assert book_dict['title'] is not None
+        assert book_dict['detail_link'] is not None
+        assert book_dict['date'] is not None
+        assert book_dict['cover_link'] is not None
+
+
+@pytest.mark.asyncio
+async def test_get_book(crawler: EconomistCrawler):
+    """测试获取单本杂志详情"""
+    # 先获取杂志列表
+    book_dicts = await crawler.get_books(page=1)
+    assert len(book_dicts) > 0
+
+    # 获取第一本杂志的详情
+    book_dict = await crawler.get_book(book_dicts[0])
+    assert book_dict is not None
+    assert book_dict['download_link'] is not None
+
+
+@pytest.mark.asyncio
+async def test_download_book(crawler: EconomistCrawler, tmp_path: Path):
+    """测试下载杂志"""
+    # 设置临时下载目录
+    download_dir = tmp_path / "downloads"
+    download_dir.mkdir()
+
+    # 获取杂志列表和详情
+    book_dicts = await crawler.get_books(page=1)
+    assert len(book_dicts) > 0
+    book_dict = await crawler.get_book(book_dicts[0])
+    assert book_dict['download_link'] is not None
+
+    # 下载杂志
+    downloader = FileDownloader()
+    book_dict = await downloader.download_book(book_dict)
+
+    # 验证下载结果
+    assert book_dict['file_path'] is not None
+    assert Path(book_dict['file_path']).exists()
+    assert Path(book_dict['file_path']).is_file()
+
+
+@pytest.mark.asyncio
+async def test_crawler_integration(crawler: EconomistCrawler, tmp_path: Path):
+    """测试爬虫完整流程"""
+    # 设置临时下载目录
+    download_dir = tmp_path / "downloads"
+    download_dir.mkdir()
+
+    # 1. 获取杂志列表
+    book_dicts = await crawler.get_books(page=1)
+    assert len(book_dicts) > 0
+
+    # 2. 获取第一本杂志的详情
+    book_dict = await crawler.get_book(book_dicts[0])
+    assert book_dict['download_link'] is not None
+
+    # 3. 下载杂志
+    downloader = FileDownloader()
+    book_dict = await downloader.download_book(book_dict)
+
+    # 4. 验证结果
+    assert book_dict['file_path'] is not None
+    assert Path(book_dict['file_path']).exists()
+    assert Path(book_dict['file_path']).is_file()

@@ -24,24 +24,16 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    'crawl_new_books': {
-        'task': 'app.task.schedulers.crawl_new_books',
+    'crawl_books': {
+        'task': 'app.task.schedulers.crawl_books_scheduler',
         'schedule': 3600,
     },
-    'check_download': {
-        'task': 'app.task.schedulers.check_download',
+    'download_books': {
+        'task': 'app.task.schedulers.download_books_scheduler',
         'schedule': 600,
     },
     'distribute_books': {
-        'task': 'app.task.schedulers.distribute_books',
+        'task': 'app.task.schedulers.distribute_books_scheduler',
         'schedule': 60 * 60 * 24,
-    },
-    'add_books_to_users': {
-        'task': 'app.task.schedulers.add_books_to_users',
-        'schedule': 60,
-    },
-    'compress_books': {
-        'task': 'app.task.schedulers.compress_books',
-        'schedule': 7200,
-    },
+    }
 }

@@ -1,12 +1,15 @@
 
 import asyncio
+from pathlib import Path
 
-from app.database import (get_db, User, Book, UserBook, UserBookStatus,
-                          Task)
+from app.database import (Book, BookCategory, Task, User, UserBook,
+                          UserBookStatus, get_db)
 from app.distributor import create_distributor
-from app.task.schedulers import (add_books_to_users, check_download,
-                                 distribute_books, send_books)
-from app.utils.convert_mixin import to_dict, to_iterable, to_json
+from app.task.schedulers import (crawl_books_scheduler,
+                                 distribute_books_scheduler,
+                                 download_books_scheduler)
+from app.uploader import create_uploader
+from app.utils.convert_mixin import to_dict, to_iterable
 
 
 def task1():
@@ -15,10 +18,12 @@ def task1():
         print(user.to_dict())
 
 def task2():
-    # add_books_to_users.delay()
-    # check_new_books.delay()
-    distribute_books.delay()
-
+    # crawl_books_scheduler.delay(1)
+    # crawl_books_scheduler.delay(2)
+    # crawl_books_scheduler.delay(3)
+    # crawl_books_scheduler.delay(4)
+    # distribute_books_scheduler.delay()
+    download_books_scheduler.delay()
 
 def task3():
     with get_db() as db:
@@ -55,9 +60,10 @@ def task7():
                 db.commit()
 
 def task8():
-    distributor = create_distributor('ses')
+    distributor = create_distributor('smtp')
     with get_db() as db:
         user = User.query(db, first=True)
+        books_to_send = []
         for ub in user.user_books:
             if ub.status != UserBookStatus.DOWNLOADED:
                 continue
@@ -65,21 +71,71 @@ def task8():
             book = ub.book
             if book.category == 'economist':
                 book_dict = book.to_dict()
-                # book_dict['file_path'] = book_dict['file_path'].replace('\\', '/')
                 # book_dict['file_path'] = book_dict['file_path'].replace('7z', 'pdf')
                 # book_dict['file_format'] = 'pdf'
-                # book_dict['file_size'] = 
-                asyncio.run(distributor.send_book(book_dict, 'xkb1@xiaokubao.space'))
-                break
+                books_to_send.append(book_dict)
+                
+                if len(books_to_send) >= 3:
+                    break
+                    
+        if books_to_send:
+            asyncio.run(distributor.send_books(books_to_send, 'chenranlin.17@gmail.com'))
 
+def task9():
+    file_path = 'downloads/The Economist Asia Edition – 10 January 2025.pdf'
+    key = file_path.split('/')[-1]
+    uploader = create_uploader('r2')
+    # uploader.upload_file(file_path, key)
+    print(uploader.list_files())
+    print(uploader.generate_presigned_url(key))
+
+def task10():
+    with get_db() as db:
+        books = Book.query(db, file_format='7z')
+        for book in books:
+            # 构建原始7z文件路径和新的pdf文件路径
+            old_path = book.file_path
+            new_path = old_path.replace('.7z', '.pdf')
+            if not Path(new_path).exists():
+                continue
+
+            # 更新数据库中的书籍信息
+            book.update(
+                file_path=new_path,
+                file_format='pdf',
+                file_size=Path(new_path).stat().st_size
+            )
+            
+            # 删除7z压缩包
+            if Path(old_path).exists():
+                Path(old_path).unlink()
+
+def task11():   
+    with get_db() as db:
+        books = Book.query(db)
+        for book in books:
+            category = BookCategory.get_category(book.title)
+            book.update(category=category)
+
+def task12():
+    with get_db() as db:
+        user = User.query(db, first=True)
+        # user.add_subscription('economist_usa')
+        user.remove_subscription('economist_usa')
+        user.add_subscription('economist_usa', '2025-04-20')
+        # for ub in user.user_books:
+        #     if not ub.book.category == 'economist_usa':
+        #         user.remove_book(ub.book)
     
 if __name__ == "__main__":
     # task1()
-    # task2()
+    task2()
     # task3()
     # task4()
     # task5()
     # task6()
     # task7()
-    task8()
-
+    # task8()
+    # task9()
+    # task10()
+    # task12()

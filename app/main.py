@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.database import Base, engine
+from app.database import BaseModel, engine
+from app.api import book, crawl, download, user, distribute, task
 
 # 创建数据库表
-Base.metadata.create_all(bind=engine)
+BaseModel.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -20,9 +21,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 导入路由
-from app.api import book, crawl, download, user, distribute, task
 
 # 注册路由
 app.include_router(book.router, prefix=settings.API_V1_STR, tags=["book"])

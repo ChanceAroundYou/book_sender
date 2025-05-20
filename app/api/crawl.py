@@ -1,33 +1,28 @@
 from fastapi import APIRouter
-from loguru import logger
 
-from app.task.tasks import crawl_book, crawl_books
+from app.task.tasks import crawl_book_task, crawl_books_task
 
 router = APIRouter()
 
-@router.post("/crawl/book_list/{category}")
-async def crawl_book_list(
+@router.post("/crawl/books/{category}")
+async def crawl_books_api(
     page: int = 1,
     category: str = "economist",
 ):
     try:
-        logger.info(f'Starting to crawl book list page: {page}.')
-        crawl_books.delay(category, page)
+        crawl_books_task.delay(category, page)
         return {"message": "Book list crawl task start."}
     except Exception as e:
         return {"error": str(e)}
 
 
 @router.post("/crawl/book/{category}")
-async def crawl_book(
+async def crawl_book_api(
     book_dict: dict,
     category: str = "economist",
 ):
     try:
-        logger.info(
-            f"Starting to crawl book {book_dict.get('title', '')}, detail link: {book_dict.get('detail_link', '')}."
-        )
-        crawl_book.delay(category, book_dict)
+        crawl_book_task.delay(category, book_dict)
         return {"message": "Book crawl task start."}
     except Exception as e:
         return {"error": str(e)}

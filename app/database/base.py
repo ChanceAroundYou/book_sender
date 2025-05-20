@@ -3,25 +3,22 @@ from datetime import UTC, datetime
 from typing import Generic, List, Type, TypeVar
 
 from sqlalchemy import Column, DateTime, Integer, create_engine
-from sqlalchemy.orm import (Session, declarative_base, object_session,
-                            sessionmaker)
+from sqlalchemy.orm import Session, declarative_base, object_session, sessionmaker
 
 from app.config import settings
 from app.utils.convert_mixin import DictMixin
 
 Base = declarative_base()
-T = TypeVar('T', bound='BaseModel')
+T = TypeVar("T", bound="BaseModel")
 
 DATABASE_URL = settings.DATABASE_URL
 engine = create_engine(DATABASE_URL)
 
 # 创建会话工厂
-session_maker = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionMaker = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 获取数据库会话的依赖函数
-@contextmanager
-def get_db():
-    db = session_maker()
+def get_depend_db():
+    db = SessionMaker()
     try:
         yield db
         db.commit()
@@ -31,12 +28,20 @@ def get_db():
     finally:
         db.close()
 
+# 获取数据库会话的依赖函数
+@contextmanager
+def get_db():
+    return get_depend_db()
+
 class BaseModel(Base):
     __abstract__ = True
-    
+
     id = Column(Integer, primary_key=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    updated_at = Column(
+        DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
+
 
 class ModelMixin(Generic[T], DictMixin):
     @property
@@ -44,63 +49,69 @@ class ModelMixin(Generic[T], DictMixin):
         return object_session(self)
 
     @classmethod
-    def query(
-        cls, db: Session, first: bool=False, **kwargs
-    ) -> List[T] | T | None:
+    def query(cls, db: Session, first: bool = False, **kwargs) -> List[T] | T | None:
         skip = kwargs.pop("skip", 0)
         limit = kwargs.pop("limit", None)
-        order_by = kwargs.pop("order_by", 'id')
+        order_by = kwargs.pop("order_by", "id")
         order_desc = kwargs.pop("order_desc", True)
 
         query = db.query(cls)
         for key, value in kwargs.items():
             if not hasattr(cls, key):
                 continue
-                
+
             if isinstance(value, dict):
-                operator = value.get('operator', '=')
-                val = value.get('value')
+                operator = value.get("operator", "=")
+                val = value.get("value")
             else:
-                operator = '='
+                operator = "="
                 val = value
 
-            if operator == '!=':
+            if operator == "!=":
                 query = query.filter(getattr(cls, key) != val)
-            elif operator == '>':
-                query = query.filter(getattr(cls, key) > val) 
-            elif operator == '<':
+            elif operator == ">":
+                query = query.filter(getattr(cls, key) > val)
+            elif operator == "<":
                 query = query.filter(getattr(cls, key) < val)
-            elif operator == '>=':
+            elif operator == ">=":
                 query = query.filter(getattr(cls, key) >= val)
-            elif operator == '<=':
+            elif operator == "<=":
                 query = query.filter(getattr(cls, key) <= val)
-            elif operator == 'in':
+            elif operator == "in":
                 query = query.filter(getattr(cls, key).in_(val))
-            elif operator == 'not in':
+            elif operator == "not in":
                 query = query.filter(getattr(cls, key).notin_(val))
-            elif operator == 'like':
+            elif operator == "like":
                 query = query.filter(getattr(cls, key).like(f"%{val}%"))
-            elif operator == 'not like':
+            elif operator == "not like":
                 query = query.filter(getattr(cls, key).notlike(f"%{val}%"))
-            elif operator == 'between':
+            elif operator == "between":
                 query = query.filter(getattr(cls, key).between(val[0], val[1]))
             else:
                 query = query.filter(getattr(cls, key) == val)
 
-        query = query.order_by(getattr(cls, order_by).desc() if order_desc else getattr(cls, order_by).asc()).offset(skip)
+        query = query.order_by(
+            getattr(cls, order_by).desc()
+            if order_desc
+            else getattr(cls, order_by).asc()
+        ).offset(skip)
         if limit:
             query = query.limit(limit)
         if first:
             return query.first()
         return query.all()
-    
+
     @classmethod
     def get_by_id(cls: Type[T], db: Session, id: int | str) -> T | None:
         return db.query(cls).filter(cls.id == id).first()
 
     @classmethod
-    def create(cls: Type[T], db: Session, ignore_id: bool=True, **kwargs) -> T:
-        kwargs = {k: v for k, v in kwargs.items() if hasattr(cls, k) and (not ignore_id or k != "id")}
+    def create(cls: Type[T], db: Session, ignore_id: bool = True, **kwargs) -> T:
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if hasattr(cls, k) and (not ignore_id or k != "id")
+        }
         kwargs["created_at"] = datetime.now(UTC)
         kwargs["updated_at"] = datetime.now(UTC)
 
@@ -112,7 +123,7 @@ class ModelMixin(Generic[T], DictMixin):
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
-            if key in ['id', 'created_at', 'updated_at']:
+            if key in ["id", "created_at", "updated_at"]:
                 continue
             elif not hasattr(self, key):
                 continue

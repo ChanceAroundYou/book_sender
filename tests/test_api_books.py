@@ -4,9 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.database.core import get_db
-from app.database.base import BaseModel
-from app.database.book import Book
+from app.database import BaseModel, Book, get_depend_db
 from app.main import app
 
 # 测试数据
@@ -55,7 +53,7 @@ def client(db_engine):
         finally:
             session.close()
 
-    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_depend_db] = override_get_db
 
     return TestClient(app)
 
@@ -63,10 +61,7 @@ def client(db_engine):
 # 创建测试图书
 @pytest.fixture(scope="function")
 def test_book(db_session):
-    book = Book(**TEST_BOOK)
-    db_session.add(book)
-    db_session.commit()
-    db_session.refresh(book)
+    book = Book.create(db_session, **TEST_BOOK)
     return book
 
 
@@ -93,7 +88,7 @@ def test_get_nonexistent_book(client):
 
 def test_create_book(client):
     """测试创建图书"""
-    response = client.post("/api/v1/books", json=TEST_BOOK)
+    response = client.post("/api/v1/books", params=TEST_BOOK)
     assert response.status_code == 200
     assert response.json()["title"] == TEST_BOOK["title"]
 
@@ -101,14 +96,14 @@ def test_create_book(client):
 def test_update_book(client, test_book):
     """测试更新图书"""
     update_data = {"title": "Updated Title"}
-    response = client.put(f"/api/v1/books/{test_book.id}", json=update_data)
+    response = client.put(f"/api/v1/books/{test_book.id}", params=update_data)
     assert response.status_code == 200
     assert response.json()["title"] == "Updated Title"
 
 
 def test_update_nonexistent_book(client):
     """测试更新不存在的图书"""
-    response = client.put("/api/v1/books/999", json={"title": "Updated Title"})
+    response = client.put("/api/v1/books/999", params={"title": "Updated Title"})
     assert response.status_code == 404
 
 

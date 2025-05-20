@@ -1,12 +1,18 @@
-from typing import Type, TypeVar
+from typing import Type, overload, Literal
 
 from app.distributor.base import BaseDistributor
 from app.distributor.ses_distributor import SESDistributor
 from app.distributor.smtp_distributor import SMTPDistributor
 
-T = TypeVar('T', bound=BaseDistributor) 
+@overload
+def create_distributor(distributor_type: Literal['smtp'], *args, **kwargs) -> SMTPDistributor:
+    ...
 
-def create_distributor(distributor_type: str, *args, **kwargs) -> T:
+@overload
+def create_distributor(distributor_type: Literal['ses'], *args, **kwargs) -> SESDistributor:
+    ...
+
+def create_distributor(distributor_type: str, *args, **kwargs) -> BaseDistributor:
     """创建分发器实例
     
     Args:
@@ -15,7 +21,7 @@ def create_distributor(distributor_type: str, *args, **kwargs) -> T:
     Returns:
         BaseDistributor: 分发器实例
     """
-    distributor_map: dict[str, Type[T]] = {
+    distributor_map: dict[str, Type[BaseDistributor]] = {
         'smtp': SMTPDistributor,
         'ses': SESDistributor,
     }
