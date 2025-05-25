@@ -1,6 +1,6 @@
 from app.database.base import BaseModel, engine, get_db, get_depend_db
 from app.database.book import Book, BookFormat
-from app.database.category import BookCategory
+from app.database.series import BookSeries
 from app.database.task import Task, TaskStatus
 from app.database.user import User
 from app.database.user_book import UserBook, UserBookStatus
@@ -15,7 +15,7 @@ __all__ = [
     "BookFormat",
     "get_db",
     "engine",
-    "BookCategory",
+    "BookSeries",
     "BaseModel",
     "get_depend_db",
 ]

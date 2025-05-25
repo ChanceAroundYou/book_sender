@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    command: postgres -p ${POSTGRES_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -p ${POSTGRES_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    container_name: postgres
+    networks:
+      - app-network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    command: redis-server --appendonly yes --port ${REDIS_PORT}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "${REDIS_PORT}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    container_name: redis
+    networks:
+      - app-network
+
+  # FastAPI应用
+  web:
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../app:/app/app
+      - ../downloads:/${BOOKS_DIR}
+      # - ../.env:/app/.env
+    env_file:
+      - ../.env
+    ports:
+      - "${WEB_PORT}:8000"
+    container_name: web
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # Celery Worker
+  celery_worker:
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A app.celery_app.celery_app worker --loglevel=info
+    volumes:
+      - ../app:/app/app
+      - ../downloads:/app/downloads
+      # - ../.env:/app/.env
+    env_file:
+      - ../.env
+    container_name: celery_worker
+    depends_on:
+      - web
+      - postgres
+      - redis
+    networks:
+      - app-network
+
+  # Celery Beat
+  celery_beat:
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A app.celery_app.celery_app beat --loglevel=info
+    volumes:
+      - ../app:/app/app
+      # - ../.env:/app/.env
+    env_file:
+      - ../.env
+    container_name: celery_beat
+    depends_on:
+      - web
+      - postgres
+      - redis
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge

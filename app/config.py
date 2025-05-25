@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
+from loguru import logger
 from pydantic_settings import BaseSettings
 
 
@@ -33,6 +34,7 @@ def load_env_file(env_file: Optional[str] = None) -> None:
     for env_path in env_files:
         if env_path.exists():
             load_dotenv(env_path)
+            logger.info(f"加载环境变量文件: {env_path}")
             return
 
 
@@ -50,12 +52,15 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
 
     # 数据库配置
-    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "")
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "")
+    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "")
-    DATABASE_URL: str = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}/{POSTGRES_DB}"
-    SQLALCHEMY_DATABASE_URI: str = DATABASE_URL
+
+    @property
+    def DATABASE_URL(self) -> str:
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     # Redis配置
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
@@ -63,7 +68,8 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
 
     # 文件存储配置
-    BOOKS_DIR: str = "app/static/books"
+    WORK_DIR: str = os.getenv("WORK_DIR", "app")
+    BOOKS_DIR: str = os.getenv("BOOKS_DIR", "downloads")
     MAX_BOOK_SIZE: int = 100 * 1024 * 1024  # 100MB
 
     # 爬虫配置
@@ -76,15 +82,21 @@ class Settings(BaseSettings):
     DISTRIBUTOR_TYPE: str = "smtp"
 
     # 下载配置
-    DOWNLOAD_DIR: str = "downloads"
+    DOWNLOAD_DIR: str = BOOKS_DIR
     DOWNLOADER_TYPE: str = "file"
 
     # 上传配置
     UPLOADER_TYPE: str = "r2"
 
     # Celery配置
-    CELERY_BROKER_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
-    CELERY_RESULT_BACKEND: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+    @property
+    def CELERY_BROKER_URL(self) -> str:
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+    @property
+    def CELERY_RESULT_BACKEND(self) -> str:
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
     CELERY_TASK_MAX_RETRIES: int = 3
 
     # Email settings

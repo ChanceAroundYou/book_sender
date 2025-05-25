@@ -3,11 +3,9 @@ from app.config import settings
 
 def test_database_config():
     """测试数据库配置是否正确加载"""
-    assert settings.POSTGRES_SERVER is not None
     assert settings.POSTGRES_USER is not None
     assert settings.POSTGRES_PASSWORD is not None
     assert settings.POSTGRES_DB is not None
-    assert settings.SQLALCHEMY_DATABASE_URI is not None
 
 
 def test_redis_config():

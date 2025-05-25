@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import UTC, datetime
-from typing import Generic, List, Type, TypeVar
+from typing import Generic, List, Literal, Type, TypeVar, overload
 
 from sqlalchemy import Column, DateTime, Integer, create_engine
 from sqlalchemy.orm import Session, declarative_base, object_session, sessionmaker
@@ -17,6 +17,7 @@ engine = create_engine(DATABASE_URL)
 # 创建会话工厂
 SessionMaker = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 def get_depend_db():
     db = SessionMaker()
     try:
@@ -28,10 +29,12 @@ def get_depend_db():
     finally:
         db.close()
 
+
 # 获取数据库会话的依赖函数
 @contextmanager
 def get_db():
     return get_depend_db()
+
 
 class BaseModel(Base):
     __abstract__ = True
@@ -45,11 +48,24 @@ class BaseModel(Base):
 
 class ModelMixin(Generic[T], DictMixin):
     @property
-    def db(self) -> Session | None:
+    def db(self) -> Session:
         return object_session(self)
 
+
+    @overload
     @classmethod
-    def query(cls, db: Session, first: bool = False, **kwargs) -> List[T] | T | None:
+    def query(cls, db: Session, *, first: Literal[True], **kwargs) -> T | None: ...
+
+    @overload
+    @classmethod
+    def query(cls, db: Session, *, first: Literal[False], **kwargs) -> List[T] | None: ...
+
+    @overload
+    @classmethod
+    def query(cls, db: Session, **kwargs) -> List[T] | None: ...
+
+    @classmethod
+    def query(cls, db: Session, *, first: bool = False, **kwargs) -> List[T] | T | None:
         skip = kwargs.pop("skip", 0)
         limit = kwargs.pop("limit", None)
         order_by = kwargs.pop("order_by", "id")
@@ -95,10 +111,10 @@ class ModelMixin(Generic[T], DictMixin):
             if order_desc
             else getattr(cls, order_by).asc()
         ).offset(skip)
+        if first:
+            return query.limit(1).first()
         if limit:
             query = query.limit(limit)
-        if first:
-            return query.first()
         return query.all()
 
     @classmethod

@@ -5,7 +5,6 @@ import asyncio
 from loguru import logger
 from app.config import settings
 from app.database.book import BookFormat
-from tqdm import tqdm
 from datetime import datetime, UTC
 
 class BaseDownloader:
@@ -60,29 +59,16 @@ class BaseDownloader:
             
             file_path = os.path.join(self.download_dir, file_name)
             total_size = int(response.headers.get('content-length', 0))
-            with open(file_path, "wb") as f, tqdm(
-                desc=file_name,
-                total=total_size,
-                unit='iB',
-                unit_scale=True,
-                unit_divisor=1024,
-                position=0,
-                leave=True,
-                mininterval=5.0  # 最小更新间隔1秒
-            ) as pbar:
-                accumulated_size = 0
+            with open(file_path, "wb") as f:
                 chunk_size = 128 * 1024
-                for chunk in response.iter_content(chunk_size=chunk_size):  # 增大chunk大小到32KB
+                for chunk in response.iter_content(chunk_size=chunk_size):
                     if chunk:
-                        size = f.write(chunk)
-                        accumulated_size += size
-                        if accumulated_size >= chunk_size:  # 累积64KB才更新一次进度条
-                            pbar.update(accumulated_size)
-                            accumulated_size = 0
+                        f.write(chunk)
                         
             logger.info(f"下载完成: {file_path}")
             
             book_dict['downloaded_at'] = datetime.now(UTC)
+            book_dict['file_path'] = file_path
             book_dict['file_size'] = total_size
             book_dict['file_format'] = file_format
             return book_dict

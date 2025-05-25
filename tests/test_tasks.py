@@ -4,7 +4,7 @@ import pytest
 
 from app.task.tasks import crawl_book_task, crawl_books_task, download_book_task
 
-BOOK_CATEGORY = "economist"
+BOOK_SERIES = "economist"
 BOOK_DICTS: List[Dict] = [
     {
         "title": "The Economist UK – May 3, 2025",
@@ -351,7 +351,7 @@ DOWNLOAD_BOOK_DICT: Dict = {
 async def test_crawl_book_list():
     """测试爬取书籍列表任务"""
     # 执行任务
-    result = crawl_books_task.delay(category=BOOK_CATEGORY, page=1).get()
+    result = crawl_books_task.delay(series=BOOK_SERIES, page=1).get()
 
     # 验证结果
     assert isinstance(result, dict), "Result should be a dictionary"
@@ -381,7 +381,7 @@ async def test_crawl_book_list():
 @pytest.mark.asyncio
 async def test_crawl_book():
     """测试爬取单本书籍任务"""
-    result = crawl_book_task.delay(category=BOOK_CATEGORY, book_dict=BOOK_DICTS[0]).get()
+    result = crawl_book_task.delay(series=BOOK_CATEGORY, book_dict=BOOK_DICTS[0]).get()
 
     # 验证结果
     assert isinstance(result, dict), "Result should be a dictionary"

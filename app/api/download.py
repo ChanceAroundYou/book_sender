@@ -1,8 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
 
+from app.api import get_request_params
 from app.database import Book, get_depend_db
 from app.task.tasks import download_book_task
 
@@ -29,11 +30,16 @@ async def download_books_api(request: Request, db: Session = Depends(get_depend_
 
 @router.post("/download/book")
 async def download_book_api(
-    book_dict: dict,
+    request: Request,
+    db: Session = Depends(get_depend_db),
 ):
     """创建下载任务"""
     try:
-        download_book_task.delay(book_dict)
-        return {"message": f"Book {book_dict.get('title', '')} download task start."}
+        params = await get_request_params(request)
+        book = Book.query(db, first=True, **params)
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+        download_book_task.delay(book.to_dict())
+        return {"message": f"Book {book.title} download task start."}
     except Exception as e:
         return {"error": str(e)}

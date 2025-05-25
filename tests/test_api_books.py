@@ -15,7 +15,7 @@ TEST_BOOK = {
     "summary": "Test Summary",
     "cover_link": "http://example.com/cover.jpg",
     "download_link": "http://example.com/book.pdf",
-    "category": "Test Category",
+    "series": "Test series",
     "file_format": "pdf",
 }
 

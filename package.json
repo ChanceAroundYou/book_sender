@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@types/axios": "^0.14.4",
+    "axios": "^1.9.0",
+    "react-redux": "^9.2.0"
+  }
+}

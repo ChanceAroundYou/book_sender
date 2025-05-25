@@ -36,7 +36,7 @@ class EconomistCrawler(BaseCrawler):
         self.browser = await self.playwright.chromium.launch(
             headless=True,
             # headless=False,
-            executable_path='/usr/bin/chromium-browser',
+            # executable_path='/usr/bin/chromium-browser',
             args=['--no-sandbox']
         )
         self.context = await self.browser.new_context(

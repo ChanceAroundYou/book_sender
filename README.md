@@ -40,7 +40,7 @@ pip install -r requirements.txt
 4. 配置环境变量：
 创建 `.env` 文件并设置以下变量：
 ```
-POSTGRES_SERVER=localhost
+POSTGRES_HOST=localhost
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_password
 POSTGRES_DB=book_sender

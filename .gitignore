@@ -6,3 +6,4 @@ celerybeat*
 .vscode/
 .mypy_cache/
 .pytest_cache/
+node_modules/

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import BaseModel, engine
-from app.api import book, crawl, download, user, distribute, task
+from app.api import book, crawl, download, user, distribute, task, utils
 
 # 创建数据库表
 BaseModel.metadata.create_all(bind=engine)
@@ -29,6 +29,7 @@ app.include_router(download.router, prefix=settings.API_V1_STR, tags=["download"
 app.include_router(crawl.router, prefix=settings.API_V1_STR, tags=["crawl"])
 app.include_router(distribute.router, prefix=settings.API_V1_STR, tags=["distribute"])
 app.include_router(task.router, prefix=settings.API_V1_STR, tags=["task"])
+app.include_router(utils.router, prefix=settings.API_V1_STR, tags=["utils"])
 
 @app.get("/")
 async def root():

@@ -25,4 +25,5 @@ numpy==1.26.4
 httpx==0.26.0
 flower>=2.0.1  # Celery 监控工具
 boto3>=1.34.0
-botocore>=1.34.0 
+botocore>=1.34.0
+loguru==0.7.0
