@@ -186,7 +186,7 @@ const UserProfileEditPage = () => {
                     name="newPassword"
                     label="新密码"
                     rules={[
-                        ({ getFieldValue }) => ({
+                        () => ({
                             validator(_, value) {
                                 if (value && value.length < 6) {
                                     return Promise.reject(new Error('新密码至少6个字符'));

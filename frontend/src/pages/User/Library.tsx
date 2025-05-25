@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Typography, Tabs, Empty, List, Card, Tag, Spin, Image } from 'antd';
+import { Row, Col, Typography, Tabs, Empty, List, Tag, Spin, Image } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector, RootState } from '@/store';
-import type { User } from '@/types';
 import { fetchCurrentUser } from '@/store/slices/authSlice';
 import { utilService } from '@/services/api';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 interface UserBook {
     id: number;
@@ -36,10 +35,6 @@ const UserLibraryPage = () => {
         }
     }, [dispatch, currentUser]);
 
-    const handleBookClick = (id: number) => {
-        navigate(`/books/${id}`);
-    };
-
     const items: TabItem[] = [
         {
             key: 'my_books',
@@ -47,46 +42,6 @@ const UserLibraryPage = () => {
             children: loading ? (
                 <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>
             ) : userBooks.length > 0 ? (
-                // <List
-                //     grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 5 }}
-                //     dataSource={userBooks}
-                //     renderItem={(book) => (
-                //         <List.Item>
-                //             <Card
-                //                 hoverable
-                //                 onClick={() => handleBookClick(book.id)}
-                //                 cover={
-                //                     <Image
-                //                         alt={book.title}
-                //                         src={book.cover_link ? utilService.getProxiedImageUrl(book.cover_link) : undefined}
-                //                         style={{
-                //                             width: '100%',
-                //                             aspectRatio: '3/4',
-                //                             objectFit: 'cover',
-                //                         }}
-                //                         preview={false}
-                //                         fallback="/placeholder-image.png"
-                //                         onError={(e) => {
-                //                             (e.target as HTMLImageElement).src = '';
-                //                         }}
-                //                     />
-                //                 }
-                //                 style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
-                //                 bodyStyle={{ flexGrow: 1, paddingTop: '12px', paddingBottom: '12px' }}
-                //             >
-                //                 <Card.Meta
-                //                     title={<Text ellipsis={{ tooltip: book.title }}>{book.title}</Text>}
-                //                     description={
-                //                         <>
-                //                             <Tag color="blue" style={{ marginBottom: '8px' }}>{book.status || 'N/A'}</Tag>
-                //                             <Text type="secondary" style={{ fontSize: '12px', display: 'block' }}>ID: {book.id}</Text>
-                //                         </>
-                //                     }
-                //                 />
-                //             </Card>
-                //         </List.Item>
-                //     )}
-                // />
                 <List
                     loading={loading}
                     dataSource={userBooks}

@@ -343,7 +343,7 @@ const bookSlice = createSlice({
                 state.loading = true;
                 state.error = null;
             })
-            .addCase(distributeBookAction.fulfilled, (state, action: PayloadAction<ServiceResponseMessageOrError>) => {
+            .addCase(distributeBookAction.fulfilled, (state) => {
                 state.loading = false;
             })
             .addCase(distributeBookAction.rejected, (state, action: PayloadAction<string | undefined>) => {
@@ -355,7 +355,7 @@ const bookSlice = createSlice({
                 state.loading = true;
                 state.error = null;
             })
-            .addCase(distributeSeriesAction.fulfilled, (state, action: PayloadAction<ServiceResponseMessageOrError>) => {
+            .addCase(distributeSeriesAction.fulfilled, (state) => {
                 state.loading = false;
             })
             .addCase(distributeSeriesAction.rejected, (state, action: PayloadAction<string | undefined>) => {

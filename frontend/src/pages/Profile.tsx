@@ -3,8 +3,7 @@ import { Card, Avatar, Tabs, List, Tag, Button, message, Typography } from 'antd
 import { UserOutlined, BookOutlined, BellOutlined, DeleteOutlined } from '@ant-design/icons';
 import { RootState, useAppDispatch, useAppSelector } from '@/store';
 import { fetchCurrentUser } from '@/store/slices/authSlice';
-import { deleteUserSubscription, addUserSubscription } from '@/store/slices/userSlice';
-import type { User } from '@/types';
+import { deleteUserSubscription } from '@/store/slices/userSlice';
 
 const { TabPane } = Tabs;
 const { Text } = Typography;

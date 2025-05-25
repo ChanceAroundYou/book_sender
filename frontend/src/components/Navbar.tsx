@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Menu, Dropdown, Button, Input, Space } from 'antd';
-import { UserOutlined, SearchOutlined, LoginOutlined } from '@ant-design/icons';
+import { UserOutlined, LoginOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAppSelector, RootState, store, useAppDispatch } from '@/store';
 import { logoutUser, fetchCurrentUser } from '@/store/slices/authSlice';

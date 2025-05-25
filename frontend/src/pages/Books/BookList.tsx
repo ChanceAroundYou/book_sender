@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    Row, Col, Typography, Input, Select, Space, Empty, Table, Button, message, Spin, Modal
+    Row, Col, Typography, Input, Space, Empty, Table, Button, message, Spin, Modal
 } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector, RootState } from '@/store';
@@ -12,9 +12,9 @@ import { ColumnsType } from 'antd/es/table';
 import { SearchOutlined, SendOutlined } from '@ant-design/icons';
 import { renderSeries } from '@/utils';
 
+
 const { Title, Text } = Typography;
 const { Search } = Input;
-const { Option } = Select;
 
 const BookListPage = () => {
     const navigate = useNavigate();
@@ -32,6 +32,8 @@ const BookListPage = () => {
 
     const [localSearchTerm, setLocalSearchTerm] = useState<string>('');
     const [seriesList, setSeriesList] = useState<string[]>([]);
+
+    // console.log(seriesList)
 
     useEffect(() => {
         const titleFilter = currentFilters.title;
@@ -68,32 +70,32 @@ const BookListPage = () => {
         dispatch(setBookFilters(newFilters));
     };
 
-    const handleSelectFilterChange = (value: string | number | undefined, filterKey: Extract<keyof BookQueryParams, 'file_format' | 'series' | 'language'>) => {
-        const newFilters: Partial<BookQueryParams> = {
-            ...currentFilters,
-            [filterKey]: value || undefined,
-            skip: 0,
-        };
-        dispatch(setBookFilters(newFilters));
-    };
+    // const handleSelectFilterChange = (value: string | number | undefined, filterKey: Extract<keyof BookQueryParams, 'file_format' | 'series' | 'language'>) => {
+    //     const newFilters: Partial<BookQueryParams> = {
+    //         ...currentFilters,
+    //         [filterKey]: value || undefined,
+    //         skip: 0,
+    //     };
+    //     dispatch(setBookFilters(newFilters));
+    // };
 
-    const handleSortChange = (value: string | undefined) => {
-        let orderBy: BookQueryParams['order_by'] = undefined;
-        let orderDesc: BookQueryParams['order_desc'] = undefined;
-        if (value) {
-            orderDesc = value.startsWith('-');
-            orderBy = value.replace('-', '') as BookQueryParams['order_by'];
-        }
-        const newFilters: Partial<BookQueryParams> = {
-            ...currentFilters,
-            order_by: orderBy,
-            order_desc: orderDesc,
-            skip: 0,
-        };
-        dispatch(setBookFilters(newFilters));
-    };
+    // const handleSortChange = (value: string | undefined) => {
+    //     let orderBy: BookQueryParams['order_by'] = undefined;
+    //     let orderDesc: BookQueryParams['order_desc'] = undefined;
+    //     if (value) {
+    //         orderDesc = value.startsWith('-');
+    //         orderBy = value.replace('-', '') as BookQueryParams['order_by'];
+    //     }
+    //     const newFilters: Partial<BookQueryParams> = {
+    //         ...currentFilters,
+    //         order_by: orderBy,
+    //         order_desc: orderDesc,
+    //         skip: 0,
+    //     };
+    //     dispatch(setBookFilters(newFilters));
+    // };
 
-    const handleTableChange = (pagination: any, tableAntdFilters: Record<string, (React.Key | boolean)[] | null>, sorter: any) => {
+    const handleTableChange = (pagination: any, sorter: any) => {
         dispatch(setBookPagination({ page: pagination.current, pageSize: pagination.pageSize }));
 
         const previousOrderBy = currentFilters.order_by;

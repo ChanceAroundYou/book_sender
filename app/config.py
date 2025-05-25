@@ -50,12 +50,23 @@ class Settings(BaseSettings):
     # CORS配置
     CORS_ORIGINS: list = [
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3001",
+        "http://192.168.1.10:3000",
+        "http://192.168.1.10:3001",
+        "http://192.168.1.10:5173",
         "http://192.168.1.6:3000",
+        "http://192.168.1.6:3001",
         "http://192.168.1.6:5173",
+        "http://192.168.1.6:25688",
         "http://localhost:8000",
+        "http://localhost:25688",
+        "http://192.168.1.6:8000",
+        "http://192.168.1.6:25688",
+        "http://192.168.1.6:8000",
+        "http://book.xiaokubao.space",
     ]
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]

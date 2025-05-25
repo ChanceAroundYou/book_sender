@@ -19,11 +19,11 @@ const getProxiedImageUrl = (originalUrl: string | null | undefined): string => {
     // So, the full path is apiClient.defaults.baseURL + '/image-proxy'
     // Ensure no double slashes if baseURL might have a trailing one (it usually doesn't for Axios defaults.baseURL)
 
-    const baseApiUrl = apiClient.defaults.baseURL || '';
-    const proxyPath = 'image-proxy'; // Relative to the API base URL
+    // const baseApiUrl = apiClient.defaults.baseURL || '';
+    // const proxyPath = 'image-proxy'; // Relative to the API base URL
 
     // Constructing the URL carefully to avoid double slashes
-    const fullProxyUrl = `${baseApiUrl.replace(/\/$/, '')}/${proxyPath}?url=${encodeURIComponent(originalUrl)}`;
+    // const fullProxyUrl = `${baseApiUrl.replace(/\/$/, '')}/${proxyPath}?url=${encodeURIComponent(originalUrl)}`;
 
     // return fullProxyUrl;
     return originalUrl

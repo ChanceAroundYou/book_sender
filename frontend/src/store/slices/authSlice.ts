@@ -170,7 +170,7 @@ const authSlice = createSlice({
                 state.loading = true;
                 state.error = null;
             })
-            .addCase(forgotPasswordThunk.fulfilled, (state, action: PayloadAction<{ message: string }>) => {
+            .addCase(forgotPasswordThunk.fulfilled, (state) => {
                 state.loading = false;
                 // The message can be used in the component for notification
                 // No direct state change here other than loading/error

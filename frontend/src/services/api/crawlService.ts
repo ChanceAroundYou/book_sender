@@ -1,6 +1,5 @@
 import apiClient from './client';
 import type {
-    BookQueryParams,
     CrawlBooksParams,
     CrawlBookParams,
     ServiceResponseMessageOrError,

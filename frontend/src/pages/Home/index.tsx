@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Row, Col, Typography, Space, List, Card, Tag, Spin, Empty, Button, Alert } from 'antd';
+import { Row, Col, Typography, Space, List, Card, Tag, Spin, Empty, Alert } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector, RootState } from '@/store';
 import type { Book } from '@/types';
@@ -38,10 +38,8 @@ const MainHomePage = () => {
     const { user } = useAppSelector((state: RootState) => state.auth);
     const { items: latestBooks, loading: latestBooksLoading, error: latestBooksError } = useAppSelector((state: RootState) => state.book);
 
-    const [featuredBooks, setFeaturedBooks] = useState<Book[]>([]);
-    const [popularBooks, setPopularBooks] = useState<Book[]>([]);
-    const [featuredLoading, setFeaturedLoading] = useState(false);
-    const [popularLoading, setPopularLoading] = useState(false);
+    const [featuredLoading] = useState(false);
+    const [popularLoading] = useState(false);
 
     useEffect(() => {
         dispatch(fetchLatestBooks({ limit: 6 }));

@@ -3,5 +3,10 @@
     "@types/axios": "^0.14.4",
     "axios": "^1.9.0",
     "react-redux": "^9.2.0"
+  },
+  "devDependencies": {
+    "rollup-plugin-visualizer": "^6.0.0",
+    "terser": "^5.39.2",
+    "vite-plugin-compression2": "^1.4.0"
   }
 }

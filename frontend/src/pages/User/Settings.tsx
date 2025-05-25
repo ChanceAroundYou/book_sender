@@ -6,7 +6,7 @@ import { setTheme, setLanguage as setUiLanguage } from '@/store/slices/uiSlice';
 // import { updateUserAdmin } from '@/store/slices/userSlice';
 // import { fetchCurrentUser } from '@/store/slices/authSlice';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Option } = Select;
 
 interface NotificationPrefsForm {
@@ -42,7 +42,7 @@ const UserSettingsPage = () => {
         });
     }, [currentTheme, currentLanguage, notificationForm, displayForm]);
 
-    const handleNotificationSubmit = async (values: NotificationPrefsForm) => {
+    const handleNotificationSubmit = async () => {
         setNotifLoading(true);
         setLocalError(null);
         // Simulate API call or just show message

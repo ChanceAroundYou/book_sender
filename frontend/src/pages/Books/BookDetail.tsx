@@ -22,7 +22,6 @@ import {
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector, RootState } from '@/store';
 import { fetchBookById, setCurrentBookAction, fetchSeriesBooks, distributeBookAction } from '@/store/slices/bookSlice';
-import { triggerBookDownload } from '@/store/slices/downloadSlice';
 import { addUserSubscription, deleteUserSubscription } from '@/store/slices/userSlice';
 import { fetchCurrentUser } from '@/store/slices/authSlice';
 import type { Book, UserSubscriptionParams, DistributeBookParams } from '@/types';
@@ -38,10 +37,9 @@ const BookDetailPage = () => {
 
     const { currentBook: book, loading: bookLoading, error: bookError } = useAppSelector((state: RootState) => state.book);
     const { user: currentUser, loading: authLoading } = useAppSelector((state: RootState) => state.auth);
-    const { loading: downloadStateLoading, error: downloadError } = useAppSelector((state: RootState) => state.download);
+    const { error: downloadError } = useAppSelector((state: RootState) => state.download);
     const { loading: userUpdateLoading, error: userUpdateError } = useAppSelector((state: RootState) => state.user);
     const { loading: bookActionLoading, error: bookActionError } = useAppSelector((state: RootState) => state.book);
-    const isDownloadingCurrentBook = book ? downloadStateLoading[book.id] : false;
     const [seriesBooks, setSeriesBooks] = useState<Book[]>([]);
     const [seriesLoading, setSeriesLoading] = useState(false);
 
