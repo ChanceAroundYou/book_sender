@@ -5,7 +5,7 @@ from loguru import logger
 from app.celery_app import celery_app
 from app.config import settings
 from app.crawler import create_crawler
-from app.database import Book, BookSeries, get_db
+from app.database import Book, BookSeries, get_denpend_db
 from app.distributor import create_distributor
 from app.downloader import create_downloader
 from app.task.base import BaseTask
@@ -30,7 +30,7 @@ def crawl_books_task(self: BaseTask, series: str, page: int = 1):
             if not detail_link:
                 continue
 
-            with get_db() as db:
+            with get_denpend_db() as db:
                 book_db = Book.query(db, detail_link=detail_link, first=True)
                 if not book_db:
                     book_db = Book.create(db, **book_dict)
@@ -53,7 +53,7 @@ def crawl_book_task(self: BaseTask, series: str, book_dict: dict):
             logger.warning("Book detail link is empty.")
             return
 
-        with get_db() as db:
+        with get_denpend_db() as db:
             book = Book.query(db, detail_link=detail_link, first=True)
             if not book:
                 logger.warning("Book not found in the database.")
@@ -69,7 +69,7 @@ def crawl_book_task(self: BaseTask, series: str, book_dict: dict):
                 logger.warning("Book detail is not found.")
                 return
 
-        with get_db() as db:
+        with get_denpend_db() as db:
             book = Book.query(db, detail_link=detail_link, first=True)
             if book:
                 book.update(**book_dict)
@@ -88,7 +88,7 @@ def download_book_task(self: BaseTask, book_dict: dict):
             logger.warning("Book download link is empty.")
             return
 
-        with get_db() as db:
+        with get_denpend_db() as db:
             book = Book.query(db, download_link=download_link, first=True)
             if not book:
                 logger.warning("Book not found in the database.")
@@ -107,7 +107,7 @@ def download_book_task(self: BaseTask, book_dict: dict):
         if file_size == 0 or file_path == "" or file_format == "":
             raise Exception("下载失败")
 
-        with get_db() as db:
+        with get_denpend_db() as db:
             book = Book.query(db, first=True, download_link=download_link)
             if book:
                 book.downloaded(file_path, file_size, file_format)
@@ -133,7 +133,7 @@ def distribute_book_task(self: BaseTask, book_dict: dict, email: str = None):
             if not success:
                 raise Exception("分发失败")
 
-            with get_db() as db:
+            with get_denpend_db() as db:
                 book = Book.query(
                     db, download_link=book_dict["download_link"], first=True
                 )
@@ -170,7 +170,7 @@ def distribute_books_task(self: BaseTask, book_dicts: list[dict], email: str = N
             if not success:
                 raise Exception("分发失败")
 
-            with get_db() as db:
+            with get_denpend_db() as db:
                 for book_dict in book_dicts:
                     book = Book.query(
                         db, download_link=book_dict["download_link"], first=True

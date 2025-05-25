@@ -2,7 +2,7 @@ from loguru import logger
 
 from app.celery_app import celery_app
 from app.config import settings
-from app.database import Book, BookSeries, UserBookStatus, get_db
+from app.database import Book, BookSeries, UserBookStatus, get_denpend_db
 from app.task.base import BaseTask
 from app.task.tasks import crawl_books_task, distribute_books_task, download_book_task
 
@@ -29,11 +29,9 @@ def crawl_books_scheduler(self: BaseTask, page=1):
 def download_books_scheduler(self: BaseTask):
     # 查询未下载书籍逻辑
     def _task():
-        with get_db() as db:
+        with get_denpend_db() as db:
             books = Book.query(
-                db, 
-                file_size=0, 
-                download_link={"operator": "!=", "value": ""}
+                db, file_size=0, download_link={"operator": "!=", "value": ""}
             )
             book_dicts = [book.to_dict() for book in books]
 
@@ -50,7 +48,7 @@ def distribute_books_scheduler(self: BaseTask):
     def _task():
         for series in SERIES_LIST:
             send_tasks = {}
-            with get_db() as db:
+            with get_denpend_db() as db:
                 books = Book.query(
                     db, series=series, file_size={"operator": ">", "value": 0}
                 )

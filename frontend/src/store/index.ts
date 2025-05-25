@@ -8,6 +8,7 @@ import userReducer from './slices/userSlice';
 import downloadReducer from './slices/downloadSlice';
 // import adminReducer from './slices/adminSlice'; // Deprecated
 import uiReducer from './slices/uiSlice';
+import statsReducer from './slices/statsSlice';
 
 export const store = configureStore({
     reducer: {
@@ -19,6 +20,7 @@ export const store = configureStore({
         download: downloadReducer,
         // admin: adminReducer, // Deprecated
         ui: uiReducer,
+        stats: statsReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

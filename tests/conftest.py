@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.database import BaseModel, get_db
+from app.database import BaseModel, get_denpend_db
 from app.main import app
 
 
@@ -43,5 +43,5 @@ def client(db_engine):
         finally:
             session.close()
 
-    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_denpend_db] = override_get_db
     return app.test_client()

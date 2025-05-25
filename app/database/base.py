@@ -32,7 +32,7 @@ def get_depend_db():
 
 # 获取数据库会话的依赖函数
 @contextmanager
-def get_db():
+def get_denpend_db():
     return get_depend_db()
 
 
@@ -51,14 +51,15 @@ class ModelMixin(Generic[T], DictMixin):
     def db(self) -> Session:
         return object_session(self)
 
-
     @overload
     @classmethod
     def query(cls, db: Session, *, first: Literal[True], **kwargs) -> T | None: ...
 
     @overload
     @classmethod
-    def query(cls, db: Session, *, first: Literal[False], **kwargs) -> List[T] | None: ...
+    def query(
+        cls, db: Session, *, first: Literal[False], **kwargs
+    ) -> List[T] | None: ...
 
     @overload
     @classmethod

@@ -1,11 +1,12 @@
 import asyncio
 from pathlib import Path
 from typing import List
+
 from app.config import settings
+
 settings.POSTGRES_HOST = "192.168.1.6"
 settings.REDIS_HOST = "192.168.1.6"
 
-from app.task.tasks import download_book_task
 from app.database import (
     Book,
     BookSeries,
@@ -13,7 +14,7 @@ from app.database import (
     User,
     UserBook,
     UserBookStatus,
-    get_db,
+    get_denpend_db,
     series,
 )
 from app.distributor import create_distributor
@@ -22,12 +23,13 @@ from app.task.schedulers import (
     distribute_books_scheduler,
     download_books_scheduler,
 )
+from app.task.tasks import download_book_task
 from app.uploader import create_uploader
 from app.utils.convert_mixin import to_dict, to_iterable
 
 
 def task1():
-    with get_db() as db:
+    with get_denpend_db() as db:
         user = User.get_by_id(db, 1)
         print(user.to_dict())
 
@@ -42,19 +44,19 @@ def task2():
 
 
 def task3():
-    with get_db() as db:
+    with get_denpend_db() as db:
         task = Task.query(db, first=True)
         print(task.to_dict())
 
 
 def task4():
-    with get_db() as db:
+    with get_denpend_db() as db:
         book = Book.query(db, first=True)
         print(book.to_dict())
 
 
 def task5():
-    with get_db() as db:
+    with get_denpend_db() as db:
         user_book = UserBook.query(db, first=True)
         print(user_book.to_dict())
 
@@ -68,7 +70,7 @@ def task6():
 
 
 def task7():
-    with get_db() as db:
+    with get_denpend_db() as db:
         user = User.query(db, first=True)
         for ub in user.user_books:
             subscription = user.get_subscription(ub.book.series)
@@ -82,7 +84,7 @@ def task7():
 
 def task8():
     distributor = create_distributor("smtp")
-    with get_db() as db:
+    with get_denpend_db() as db:
         user = User.query(db, first=True)
         books_to_send = []
         for ub in user.user_books:
@@ -115,7 +117,7 @@ def task9():
 
 
 def task10():
-    with get_db() as db:
+    with get_denpend_db() as db:
         books = Book.query(db, file_format="7z")
         for book in books:
             # 构建原始7z文件路径和新的pdf文件路径
@@ -137,7 +139,7 @@ def task10():
 
 
 def task11():
-    with get_db() as db:
+    with get_denpend_db() as db:
         books = Book.query(db)
         for book in books:
             series = BookSeries.get_series(book.title)
@@ -145,7 +147,7 @@ def task11():
 
 
 def task12():
-    with get_db() as db:
+    with get_denpend_db() as db:
         user = User.get_by_id(db, 5)
         for i in range(len(user.user_books)):
             ub: UserBook = user.user_books[i]
@@ -154,7 +156,7 @@ def task12():
                 print(ub.book.to_dict())
             else:
                 break
-            
+
         # for book in Book.query(db):
         #     if not book.file_path:
         #         print(book)

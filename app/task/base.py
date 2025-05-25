@@ -1,17 +1,16 @@
-from typing import Any, Dict
 import asyncio
+from typing import Any, Dict
 
 from celery import Task as CeleryTask
+from loguru import logger
 
 from app.config import settings
-from app.database import get_db, Task
-
-from loguru import logger
+from app.database import Task, get_denpend_db
 
 
 class BaseTask(CeleryTask):
     def before_start(self, task_id, args, kwargs):
-        with get_db() as db:
+        with get_denpend_db() as db:
             task = Task.get_by_id(db, task_id)
             if not task:
                 task = Task.create(db, id=task_id, name=self.name)
@@ -19,7 +18,7 @@ class BaseTask(CeleryTask):
 
     def on_success(self, retval: Any, task_id: str, args: tuple, kwargs: Dict) -> None:
         """任务成功时的回调"""
-        with get_db() as db:
+        with get_denpend_db() as db:
             task = Task.get_by_id(db, task_id)
             if task:
                 task.complete(retval)
@@ -28,7 +27,7 @@ class BaseTask(CeleryTask):
         self, exc: Exception, task_id: str, args: tuple, kwargs: Dict, einfo: Any
     ) -> None:
         """任务失败时的回调"""
-        with get_db() as db:
+        with get_denpend_db() as db:
             task = Task.get_by_id(db, task_id)
             if task:
                 task.fail(exc)
@@ -37,7 +36,7 @@ class BaseTask(CeleryTask):
         self, exc: Exception, task_id: str, args: tuple, kwargs: Dict, einfo: Any
     ) -> None:
         """任务重试时的回调"""
-        with get_db() as db:
+        with get_denpend_db() as db:
             task = Task.get_by_id(db, task_id)
             if task:
                 task.retry()
@@ -55,7 +54,7 @@ class BaseTask(CeleryTask):
             logger.error(f"任务失败，{e}")
             retries = self.request.retries
             max_retries = settings.CELERY_TASK_MAX_RETRIES
-            countdown = 10 * (2 ** retries)
+            countdown = 10 * (2**retries)
             if retries < max_retries:
                 logger.warning(f"重试 (attempt {retries + 1}/{max_retries})")
                 raise self.retry(exc=e, countdown=countdown, max_retries=max_retries)

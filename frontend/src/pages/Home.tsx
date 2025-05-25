@@ -4,18 +4,23 @@ import { BookOutlined, TeamOutlined, RocketOutlined } from '@ant-design/icons';
 import { RootState, useAppDispatch, useAppSelector } from '@/store';
 import { fetchBooks } from '@/store/slices/bookSlice';
 import { fetchUsers } from '@/store/slices/userSlice';
-
+import { fetchStats } from '@/store/slices/statsSlice';
 const { Title, Paragraph } = Typography;
 
 const HomePage = () => {
     const dispatch = useAppDispatch();
 
-    const { total: totalBooks, loading: booksLoading, error: booksError } = useAppSelector((state: RootState) => state.book);
-    const { totalUsers, loading: usersLoading, error: usersError } = useAppSelector((state: RootState) => state.user);
+    const { loading: booksLoading, error: booksError } = useAppSelector((state: RootState) => state.book);
+    const { loading: usersLoading, error: usersError } = useAppSelector((state: RootState) => state.user);
+    const { totalBooks, totalUsers, loading: statsLoading, error: statsError } = useAppSelector((state: RootState) => state.stats);
+
+    // console.log('Stats from Redux:', { totalBooks, totalUsers, statsLoading, statsError });
 
     useEffect(() => {
+        // Fetch initial data
         dispatch(fetchBooks());
         dispatch(fetchUsers());
+        dispatch(fetchStats());
     }, [dispatch]);
 
     useEffect(() => {
@@ -25,9 +30,12 @@ const HomePage = () => {
         if (usersError) {
             message.error(`Error fetching user stats: ${usersError}`);
         }
-    }, [booksError, usersError]);
+        if (statsError) {
+            message.error(`Error fetching stats: ${statsError}`);
+        }
+    }, [booksError, usersError, statsError]);
 
-    const isLoadingStats = booksLoading || usersLoading;
+    const isLoadingStats = booksLoading || usersLoading || statsLoading;
 
     return (
         <div className="p-4 md:p-6 max-w-6xl mx-auto">

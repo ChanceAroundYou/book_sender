@@ -1,7 +1,10 @@
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from loguru import logger
+from sqlalchemy.orm import Session
+
+from app.database import Book, User, get_denpend_db
 
 router = APIRouter()
 
@@ -65,3 +68,19 @@ async def image_proxy(request: Request, url: str = Query(...)):
             raise HTTPException(
                 status_code=500, detail="Internal server error while proxying image."
             )
+
+
+@router.get("/utils/stats/total-books")
+async def get_total_books(db: Session = Depends(get_denpend_db)):
+    """Get total number of books in database"""
+    with db as db:
+        total = db.query(Book).count()
+        return {"total": total}
+
+
+@router.get("/utils/stats/total-users")
+async def get_total_users(db: Session = Depends(get_denpend_db)):
+    """Get total number of users in database"""
+    with db as db:
+        total = db.query(User).count()
+        return {"total": total}

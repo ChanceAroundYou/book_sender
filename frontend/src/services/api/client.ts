@@ -10,10 +10,12 @@ interface BackendErrorResponse {
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
-    baseURL: 'http://192.168.1.6:25688/api/v1',
+    baseURL: import.meta.env.VITE_API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
     },
+    withCredentials: true,
 });
 
 // Request interceptor
