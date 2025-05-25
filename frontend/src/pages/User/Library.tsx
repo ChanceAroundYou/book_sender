@@ -40,7 +40,11 @@ const UserLibraryPage = () => {
             key: 'my_books',
             label: `我的书籍 (${userBooks.length})`,
             children: loading ? (
-                <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>
+                <div style={{ textAlign: 'center', padding: '50px' }}>
+                    <Spin size="large">
+                        <div style={{ marginTop: 24 }}>Loading your library...</div>
+                    </Spin>
+                </div>
             ) : userBooks.length > 0 ? (
                 <List
                     loading={loading}

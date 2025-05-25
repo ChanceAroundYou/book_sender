@@ -53,7 +53,13 @@ const MainHomePage = () => {
     const renderBookSection = (title: string, books: Book[], loading: boolean, icon?: React.ReactNode, error?: string | null) => (
         <Col span={24} className="mb-8">
             <Title level={3} className="mb-4"><Space>{icon}{title}</Space></Title>
-            {loading && <div className="text-center py-8"><Spin /></div>}
+            {loading && (
+                <div className="text-center py-8">
+                    <Spin>
+                        <div style={{ marginTop: 24 }}>Loading...</div>
+                    </Spin>
+                </div>
+            )}
             {!loading && error && <Alert message={`Error loading ${title.toLowerCase()}: ${error}`} type="error" />}
             {!loading && !error && books.length === 0 && <Empty description={`No ${title.toLowerCase()} available at the moment.`} />}
             {!loading && !error && books.length > 0 && (
@@ -86,7 +92,13 @@ const MainHomePage = () => {
 
                 <Col span={24} className="mb-8">
                     <Title level={3} className="mb-4"><Space><StarOutlined />Featured Books</Space></Title>
-                    {featuredLoading && <div className="text-center py-8"><Spin /></div>}
+                    {featuredLoading && (
+                        <div className="text-center py-8">
+                            <Spin>
+                                <div style={{ marginTop: 24 }}>Loading featured books...</div>
+                            </Spin>
+                        </div>
+                    )}
                     {!featuredLoading && (
                         <Empty description="Featured books are coming soon!">
                         </Empty>
@@ -95,7 +107,13 @@ const MainHomePage = () => {
 
                 <Col span={24} className="mb-8">
                     <Title level={3} className="mb-4"><Space><FireOutlined />Popular Books</Space></Title>
-                    {popularLoading && <div className="text-center py-8"><Spin /></div>}
+                    {popularLoading && (
+                        <div className="text-center py-8">
+                            <Spin>
+                                <div style={{ marginTop: 24 }}>Loading popular books...</div>
+                            </Spin>
+                        </div>
+                    )}
                     {!popularLoading && (
                         <Empty description="Popular books selection will be available shortly!">
                         </Empty>

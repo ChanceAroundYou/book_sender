@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
-import { Layout } from 'antd';
+import { Layout, Spin } from 'antd';
 import Navbar from '@/components/Navbar';
+import React, { Suspense } from 'react';
 
 const { Header, Content, Footer } = Layout;
 
@@ -12,7 +13,13 @@ const MainLayout = () => {
             </Header>
             <Content className="mt-16 p-6">
                 <div className="container mx-auto">
-                    <Outlet />
+                    <Suspense fallback={
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 128px)' }}>
+                            <Spin size="large" />
+                        </div>
+                    }>
+                        <Outlet />
+                    </Suspense>
                 </div>
             </Content>
             <Footer className="text-center bg-white border-t border-gray-200">

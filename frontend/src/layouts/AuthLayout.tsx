@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import { Layout } from 'antd';
+import { Layout, Spin } from 'antd';
+import React, { Suspense } from 'react';
 
 const { Content } = Layout;
 
@@ -13,7 +14,13 @@ const AuthLayout = () => {
             <Content className="flex items-center justify-center p-4 mt-24">
                 <div className="w-full max-w-md">
                     <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-                        <Outlet />
+                        <Suspense fallback={
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+                                <Spin size="large" />
+                            </div>
+                        }>
+                            <Outlet />
+                        </Suspense>
                     </div>
                 </div>
             </Content>

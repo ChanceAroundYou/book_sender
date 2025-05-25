@@ -290,7 +290,11 @@ const BookListPage = () => {
 
                 <Col span={24}>
                     {loading && !books.length ? (
-                        <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" tip="Loading books..." /></div>
+                        <div style={{ textAlign: 'center', padding: '50px' }}>
+                            <Spin size="large">
+                                <div style={{ marginTop: 24 }}>Loading books...</div>
+                            </Spin>
+                        </div>
                     ) : (
                         <Table<Book>
                             columns={columns}

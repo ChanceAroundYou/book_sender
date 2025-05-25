@@ -86,10 +86,11 @@ const Navbar = () => {
                 </div>
                 <Menu
                     mode="horizontal"
+                    id="mnbba"
                     items={menuItems}
                     selectedKeys={getSelectedKeys()}
                     onClick={({ key }) => navigate(key)}
-                    className="border-0"
+                    className="border-0 z-50"
                 />
             </div>
             <div className="flex items-center space-x-4">
