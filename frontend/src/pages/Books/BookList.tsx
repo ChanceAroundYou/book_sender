@@ -33,7 +33,7 @@ const BookListPage = () => {
     const [localSearchTerm, setLocalSearchTerm] = useState<string>('');
     const [seriesList, setSeriesList] = useState<string[]>([]);
 
-    // console.log(seriesList)
+    console.log(seriesList)
 
     useEffect(() => {
         const titleFilter = currentFilters.title;

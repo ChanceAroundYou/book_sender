@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { Layout, Spin } from 'antd';
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 
 const { Content } = Layout;
 

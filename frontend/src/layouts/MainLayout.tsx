@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Layout, Spin } from 'antd';
 import Navbar from '@/components/Navbar';
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 
 const { Header, Content, Footer } = Layout;
 

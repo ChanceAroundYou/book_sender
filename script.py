@@ -35,12 +35,12 @@ def task1():
 
 
 def task2():
-    # crawl_books_scheduler.delay(1)
+    crawl_books_scheduler.delay(1)
     # crawl_books_scheduler.delay(2)
     # crawl_books_scheduler.delay(3)
     # crawl_books_scheduler.delay(4)
     # distribute_books_scheduler.delay()
-    download_books_scheduler.delay()
+    # download_books_scheduler.delay()
 
 
 def task3():
@@ -165,7 +165,7 @@ def task12():
 
 if __name__ == "__main__":
     # task1()
-    # task2()
+    task2()
     # task3()
     # task4()
     # task5()
@@ -175,4 +175,4 @@ if __name__ == "__main__":
     # task9()
     # task10()
     # task11()
-    task12()
+    # task12()

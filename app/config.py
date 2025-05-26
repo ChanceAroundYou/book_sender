@@ -42,12 +42,10 @@ load_env_file()
 
 
 class Settings(BaseSettings):
-    # 基础配置
     PROJECT_NAME: str = "Book Sender"
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
 
-    # CORS配置
     CORS_ORIGINS: list = [
         "http://localhost:3000",
         "http://localhost:3001",
@@ -64,8 +62,7 @@ class Settings(BaseSettings):
         "http://localhost:8000",
         "http://localhost:25688",
         "http://192.168.1.6:8000",
-        "http://192.168.1.6:25688",
-        "http://192.168.1.6:8000",
+        "http://192.168.1.6:25688",  # Removed duplicate 192.168.1.6:8000
         "http://book.xiaokubao.space",
     ]
     CORS_ALLOW_CREDENTIALS: bool = True
@@ -78,9 +75,8 @@ class Settings(BaseSettings):
         "X-Requested-With",
     ]
 
-    # 安全配置
     SECRET_KEY: str = os.getenv("SECRET_KEY", "")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
 
     # 数据库配置
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "")
@@ -88,10 +84,26 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "")
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "")
+    SQLITE_DB_FILENAME: str = "app.db"  # Default SQLite filename
+    CELERY_DB_FILENAME: str = "celery.db"  # Default Celery SQLite filename
+    WORK_DIR: str = os.getenv("WORK_DIR", "app/db")
+    SQLITE_DB_FILENAME: str = "app.db"
+    CELERY_DB_FILENAME: str = "celery.db"
+    CELERY_BEAT_SCHEDULE_FILENAME: str = (
+        "celerybeat-schedule.sqlite3"  # For dedicated beat schedule DB
+    )
+
+    # Common SQLite PRAGMA settings for optimization
+    SQLITE_OPTIMIZATIONS: str = "?journal_mode=WAL&busy_timeout=5000&synchronous=NORMAL"
+    # For main app DB, consider synchronous=FULL for max safety:
+    # SQLITE_MAIN_DB_OPTIMIZATIONS: str = "?journal_mode=WAL&busy_timeout=5000&synchronous=FULL"
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        db_dir = Path(self.WORK_DIR)
+        db_dir.mkdir(parents=True, exist_ok=True)
+        db_path = (db_dir / self.SQLITE_DB_FILENAME).resolve()
+        return f"sqlite:///{db_path}{self.SQLITE_OPTIMIZATIONS}"
 
     # Redis配置
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
@@ -99,9 +111,9 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
 
     # 文件存储配置
-    WORK_DIR: str = os.getenv("WORK_DIR", "app")
+
     BOOKS_DIR: str = os.getenv("BOOKS_DIR", "downloads")
-    MAX_BOOK_SIZE: int = 100 * 1024 * 1024  # 100MB
+    MAX_BOOK_SIZE: int = 100 * 1024 * 1024
 
     # 爬虫配置
     CRAWLER_DELAY: int = 3  # 爬虫延迟（秒）
@@ -112,14 +124,19 @@ class Settings(BaseSettings):
     DOWNLOAD_SPEED_LIMIT: int = 1024 * 1024  # 1MB/s
     DISTRIBUTOR_TYPE: str = "smtp"
 
-    # 下载配置
+    # Download settings
     DOWNLOAD_DIR: str = BOOKS_DIR
     DOWNLOADER_TYPE: str = "file"
 
-    # 上传配置
+    # Uploader settings
     UPLOADER_TYPE: str = "r2"
 
-    # Celery配置
+    # Celery configuration
+    CELERY_WORKER_CONCURRENCY: int = os.getenv("CELERY_WORKER_CONCURRENCY", 2)
+    CELERY_WORKER_PREFETCH_MULTIPLIER: int = os.getenv(
+        "CELERY_WORKER_PREFETCH_MULTIPLIER", 2
+    )
+
     @property
     def CELERY_BROKER_URL(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
