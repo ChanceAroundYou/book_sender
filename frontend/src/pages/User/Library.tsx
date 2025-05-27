@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Typography, Tabs, Empty, List, Tag, Spin, Image } from 'antd';
+import { Row, Col, Typography, Tabs, Empty, List, Spin} from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector, RootState } from '@/store';
 import { fetchCurrentUser } from '@/store/slices/authSlice';
-import { utilService } from '@/services/api';
 import BookCard from '@/components/base/BookCard';
 
 const { Title } = Typography;
