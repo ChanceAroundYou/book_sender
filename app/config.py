@@ -64,6 +64,11 @@ class Settings(BaseSettings):
         "http://192.168.1.6:8000",
         "http://192.168.1.6:25688",  # Removed duplicate 192.168.1.6:8000
         "http://book.xiaokubao.space",
+        "https://book.xiaokubao.cloud",
+        "https://book.pages.dev",
+        "https://booksender.pages.dev",
+        "https://booksender.xiaokubao.space",
+        "https://booksender.xiaokubao.cloud",
     ]
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
@@ -86,7 +91,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "")
     SQLITE_DB_FILENAME: str = "app.db"  # Default SQLite filename
     CELERY_DB_FILENAME: str = "celery.db"  # Default Celery SQLite filename
-    WORK_DIR: str = os.getenv("WORK_DIR", "app/db")
+    DB_DIR: str = os.getenv("DB_DIR", "app/db")
     SQLITE_DB_FILENAME: str = "app.db"
     CELERY_DB_FILENAME: str = "celery.db"
     CELERY_BEAT_SCHEDULE_FILENAME: str = (
@@ -100,11 +105,11 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        db_dir = Path(self.WORK_DIR)
-        db_dir.mkdir(parents=True, exist_ok=True)
-        db_path = (db_dir / self.SQLITE_DB_FILENAME).resolve()
-        return f"sqlite:///{db_path}{self.SQLITE_OPTIMIZATIONS}"
-
+        # db_dir = Path(self.DB_DIR)
+        # db_dir.mkdir(parents=True, exist_ok=True)
+        # db_path = (db_dir / self.SQLITE_DB_FILENAME).resolve()
+        # return f"sqlite:///{db_path}{self.SQLITE_OPTIMIZATIONS}"
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
     # Redis配置
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
@@ -112,7 +117,7 @@ class Settings(BaseSettings):
 
     # 文件存储配置
 
-    BOOKS_DIR: str = os.getenv("BOOKS_DIR", "downloads")
+    DOWNLOAD_DIR: str = os.getenv("DOWNLOAD_DIR", "downloads")
     MAX_BOOK_SIZE: int = 100 * 1024 * 1024
 
     # 爬虫配置
@@ -125,16 +130,15 @@ class Settings(BaseSettings):
     DISTRIBUTOR_TYPE: str = "smtp"
 
     # Download settings
-    DOWNLOAD_DIR: str = BOOKS_DIR
     DOWNLOADER_TYPE: str = "file"
 
     # Uploader settings
     UPLOADER_TYPE: str = "r2"
 
     # Celery configuration
-    CELERY_WORKER_CONCURRENCY: int = os.getenv("CELERY_WORKER_CONCURRENCY", 2)
+    CELERY_WORKER_CONCURRENCY: int = os.getenv("CELERY_WORKER_CONCURRENCY", 4)
     CELERY_WORKER_PREFETCH_MULTIPLIER: int = os.getenv(
-        "CELERY_WORKER_PREFETCH_MULTIPLIER", 2
+        "CELERY_WORKER_PREFETCH_MULTIPLIER", 4
     )
 
     @property

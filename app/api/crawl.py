@@ -10,10 +10,12 @@ router = APIRouter()
 
 @router.post("/crawl/books/{series}")
 async def crawl_books_api(
-    page: int = 1,
+    request: Request,
     series: str = "economist",
 ):
     try:
+        params = await get_request_params(request)
+        page = int(params.pop("page", 1))
         crawl_books_task.delay(series, page)
         return {"message": "Book list crawl task start."}
     except Exception as e:

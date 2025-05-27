@@ -147,25 +147,34 @@ def task11():
 
 
 def task12():
-    with get_denpend_db() as db:
-        user = User.get_by_id(db, 5)
-        for i in range(len(user.user_books)):
-            ub: UserBook = user.user_books[i]
-            if i < 2:
-                ub.downloaded(force=True)
-                print(ub.book.to_dict())
-            else:
-                break
+    async def _task(book_dict: dict):
 
+        from app.crawler import create_crawler
+
+        async with create_crawler("economist") as crawler:
+            new_cover_link = await crawler.save_cover_image(
+                book_dict["cover_link"],
+                book_dict["date"],
+                book_dict["title"],
+                book_dict["series"],
+            )
+            print(new_cover_link)
+
+    with get_denpend_db() as db:
+        book = Book.query(db, first=True)
+        book_dict = book.to_dict()
+
+    asyncio.run(_task(book_dict))
         # for book in Book.query(db):
         #     if not book.file_path:
         #         print(book)
         #         download_book_task.delay(book.to_dict())
 
 
+
 if __name__ == "__main__":
     # task1()
-    task2()
+    # task2()
     # task3()
     # task4()
     # task5()
@@ -175,4 +184,4 @@ if __name__ == "__main__":
     # task9()
     # task10()
     # task11()
-    # task12()
+    task12()

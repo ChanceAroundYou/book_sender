@@ -1,8 +1,10 @@
 import os
 import random
+import re
 import time
 from datetime import datetime
 from typing import List
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from loguru import logger
@@ -20,6 +22,8 @@ class EconomistCrawler(BaseCrawler):
         self.context = None
         self.page = None
         self.image_processor = ImageProcessor(debug=False)
+        self.series_name = "the-economist"
+        logger.info(f"Initialized crawler for series: {self.series_name}")
 
     async def __aenter__(self):
         """异步上下文管理器入口"""
@@ -37,10 +41,10 @@ class EconomistCrawler(BaseCrawler):
             headless=True,
             # headless=False,
             # executable_path='/usr/bin/chromium-browser',
-            args=['--no-sandbox']
+            args=["--no-sandbox"],
         )
         self.context = await self.browser.new_context(
-            viewport={'width': 1920, 'height': 1080}
+            viewport={"width": 1920, "height": 1080}
         )
         self.page = await self.context.new_page()
 
@@ -58,7 +62,7 @@ class EconomistCrawler(BaseCrawler):
             # 如果找到 checkbox，点击它
             x, y = checkbox_pos
             x += random.randint(-5, 5)
-            y += random.randint(-5, 5)  
+            y += random.randint(-5, 5)
             await self.page.mouse.click(x, y)
             logger.info(f"点击 ({x}, {y})")
             await self.delay(1, 3)
@@ -67,13 +71,15 @@ class EconomistCrawler(BaseCrawler):
             # logger.info(")
             return False
 
-    async def _take_screenshot(self, save_dir:  str="tmp"):
+    async def _take_screenshot(self, save_dir: str = "tmp"):
         """截取指定区域的屏幕截图"""
         # 创建保存目录
         os.makedirs(save_dir, exist_ok=True)
         now = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        screenshot_path = os.path.join(save_dir, f"{now}_{random.randint(1, 50):02d}_full.png")
-        
+        screenshot_path = os.path.join(
+            save_dir, f"{now}_{random.randint(1, 50):02d}_full.png"
+        )
+
         # 使用 Playwright 截图
         await self.page.screenshot(path=screenshot_path)
         return screenshot_path
@@ -90,7 +96,7 @@ class EconomistCrawler(BaseCrawler):
                     # await self.delay(5, 10)
                     if await self._find_and_click_checkbox():
                         await self.delay(5, 10)
-            
+
                 # 检查页面是否加载完成
                 if loaded_selector is not None:
                     loaded_element = await self.page.query_selector(loaded_selector)
@@ -105,10 +111,72 @@ class EconomistCrawler(BaseCrawler):
         # 超时抛出异常
         raise TimeoutError(f"页面加载超时 ({max_wait_time}秒)")
 
-    async def get_books(self, page: int=1) -> List[dict]:
+    async def save_cover_image(
+        self, cover_url: str, book_date: str, book_title: str, series: str
+    ) -> str | None:
+        """Downloads an image from a URL and saves it locally."""
+        image_page = None  # Initialize for graceful close in finally
+        try:
+            logger.info(f"Downloading cover from: {cover_url}")
+
+            image_page = await self.context.new_page()
+            response = await image_page.goto(cover_url, timeout=30000)
+
+            if not response or not response.ok:
+                logger.error(
+                    f"Failed to fetch image: {cover_url}, Status: {response.status if response else 'No response'}"
+                )
+                return None
+
+            image_bytes = await response.body()
+
+            parsed_url = urlparse(cover_url)
+            original_filename = os.path.basename(parsed_url.path)
+            _, ext = os.path.splitext(original_filename)
+            if not ext:
+                content_type = response.headers.get("content-type")
+                if content_type and "image/" in content_type:
+                    ext = "." + content_type.split("image/")[-1].split(";")[0].lower()
+                else:
+                    ext = ".jpg"
+
+            sanitized_title = re.sub(
+                r'[\\/*?:"<>|]', "", book_title
+            )  # Remove invalid filename chars
+            sanitized_title = re.sub(r"[^\w\s-]", "", sanitized_title.lower())
+            sanitized_title = re.sub(r"[-\s]+", "-", sanitized_title).strip("-_")
+
+            filename = f"{book_date}_{sanitized_title[:50]}{ext}"
+
+            base_static_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "..", "static", "images")
+            )
+            series_image_path = os.path.join(base_static_path, series)
+            os.makedirs(series_image_path, exist_ok=True)
+
+            local_file_path = os.path.join(series_image_path, filename)
+
+            with open(local_file_path, "wb") as f:
+                f.write(image_bytes)
+
+            logger.info(f"Cover saved to: {local_file_path}")
+
+            relative_path_for_db = os.path.join("images", series, filename).replace(
+                "\\\\", "/"
+            )
+            return relative_path_for_db
+
+        except Exception as e:
+            logger.error(f"Error saving cover image from {cover_url}: {e}")
+            return None
+        finally:
+            if image_page and not image_page.is_closed():
+                await image_page.close()
+
+    async def get_books(self, page: int = 1) -> List[dict]:
         url = self.base_url.format(page)
-        soup = await self.get(url, loaded_selector='div#page')
-        
+        soup = await self.get(url, loaded_selector="div#page")
+
         book_elements = soup.find_all("article", class_="category-all")
 
         book_dicts = []
@@ -122,38 +190,57 @@ class EconomistCrawler(BaseCrawler):
             if date:
                 date = datetime.strptime(date, "%d.%m.%Y, %H:%M").strftime("%Y-%m-%d")
 
-            cover_element = book_element.find('img', class_='wp-post-image')
-            cover_link = cover_element['data-src']
+            cover_element = book_element.find("img", class_="wp-post-image")
+            raw_cover_link = (
+                cover_element["data-src"]
+                if cover_element and "data-src" in cover_element.attrs
+                else None
+            )
+
             book_dict = {
-                "title": title, 
-                "date": date, 
-                "cover_link": cover_link,
-                "detail_link": detail_link
+                "title": title,
+                "date": date,
+                "series": self.series_name,
+                "detail_link": detail_link,
+                "cover_link": None,  # Default to None, will be populated if successfully saved
             }
+
+            if (
+                raw_cover_link and date and title
+            ):  # title & date for filename, raw_cover_link for source
+                local_uri = await self.save_cover_image(
+                    cover_url=raw_cover_link,
+                    book_date=date,
+                    book_title=title,
+                    series=self.series_name,
+                )
+                if local_uri:
+                    book_dict["cover_link"] = local_uri
+
             book_dicts.append(book_dict)
         logger.info(f"找到 {len(book_dicts)} 期杂志")
         return book_dicts
 
     async def get_book(self, book_dict: dict) -> dict:
         logger.info(f"正在获取书籍详情: {book_dict['title']}")
-        soup = await self.get(book_dict['detail_link'], loaded_selector='div#page')
-        
+        soup = await self.get(book_dict["detail_link"], loaded_selector="div#page")
+
         download_page_element = soup.find("div", class_="vk-att-item")
-        download_page_link = download_page_element.find("a")['href']
-        download_url = f'https://magazinelib.com{download_page_link}'
-        
-        soup = await self.get(download_url, loaded_selector='div.docs_panel')
-        
+        download_page_link = download_page_element.find("a")["href"]
+        download_url = f"https://magazinelib.com{download_page_link}"
+
+        soup = await self.get(download_url, loaded_selector="div.docs_panel")
+
         download_input = soup.find("input", {"name": "url"})
         if not download_input:
             logger.error("未找到下载链接")
             return book_dict
-            
-        download_link = download_input['value']
+
+        download_link = download_input["value"]
         logger.info(f"找到下载链接: {download_link}")
-        book_dict['download_link'] = download_link
+        book_dict["download_link"] = download_link
         return book_dict
-    
+
     async def close(self):
         """关闭浏览器和 Playwright"""
         if self.page:
@@ -165,4 +252,3 @@ class EconomistCrawler(BaseCrawler):
         if self.playwright:
             await self.playwright.stop()
         logger.info("关闭浏览器")
-

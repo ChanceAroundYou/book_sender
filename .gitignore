@@ -9,3 +9,4 @@ celerybeat*
 node_modules/
 dist/
 *.db
+static/
