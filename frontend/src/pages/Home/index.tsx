@@ -65,7 +65,7 @@ const HomePage = () => {
                     dataSource={books}
                     renderItem={book => (
                         <List.Item>
-                            <BookCard book={book} onClick={handleBookClick} userBookStatus={'distributed'} />
+                            <BookCard book={book} onClick={handleBookClick} />
                         </List.Item>
                     )}
                 />
