@@ -1,5 +1,6 @@
 .python-version
-.env*
+.env
+.env.development
 downloads/
 __pycache__/
 celerybeat*
@@ -10,3 +11,4 @@ node_modules/
 dist/
 *.db
 static/
+tmp/

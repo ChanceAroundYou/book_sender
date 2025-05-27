@@ -54,8 +54,8 @@ class EconomistCrawler(BaseCrawler):
         # 在图像中查找 checkbox
         checkbox_pos = self.image_processor.find_checkbox(screenshot_path)
         # 删除截图文件
-        if os.path.exists(screenshot_path):
-            os.remove(screenshot_path)
+        # if os.path.exists(screenshot_path):
+        #     os.remove(screenshot_path)
             # logger.debug(f"删除截图: {screenshot_path}")
 
         if checkbox_pos:
@@ -84,7 +84,7 @@ class EconomistCrawler(BaseCrawler):
         await self.page.screenshot(path=screenshot_path)
         return screenshot_path
 
-    async def get(self, url, max_wait_time=30, loaded_selector=None):
+    async def get(self, url, max_wait_time=30, loaded_selector=None, soup=True):
         """安全访问页面，处理 Cloudflare 验证等情况"""
         logger.info(f"访问页面: {url}")
         await self.page.goto(url)
@@ -102,8 +102,11 @@ class EconomistCrawler(BaseCrawler):
                     loaded_element = await self.page.query_selector(loaded_selector)
                     if loaded_element:
                         content = await self.page.content()
-                        soup = BeautifulSoup(content, "html.parser")
-                        return soup
+                        if soup:
+                            return BeautifulSoup(content, "html.parser")
+                        else:
+                            return content
+                print(await self.page.title())
             except:
                 pass
             # 随机延迟后继续检测
@@ -119,52 +122,52 @@ class EconomistCrawler(BaseCrawler):
         try:
             logger.info(f"Downloading cover from: {cover_url}")
 
-            image_page = await self.context.new_page()
-            response = await image_page.goto(cover_url, timeout=30000)
+            soup = await self.get(cover_url, max_wait_time=60, loaded_selector="img")
+            print(soup)
 
-            if not response or not response.ok:
-                logger.error(
-                    f"Failed to fetch image: {cover_url}, Status: {response.status if response else 'No response'}"
-                )
-                return None
+            # if not response or not response.ok:
+            #     logger.error(
+            #         f"Failed to fetch image: {cover_url}, Status: {response.status if response else 'No response'}"
+            #     )
+            #     return None
 
-            image_bytes = await response.body()
+            # image_bytes = await response.body()
 
-            parsed_url = urlparse(cover_url)
-            original_filename = os.path.basename(parsed_url.path)
-            _, ext = os.path.splitext(original_filename)
-            if not ext:
-                content_type = response.headers.get("content-type")
-                if content_type and "image/" in content_type:
-                    ext = "." + content_type.split("image/")[-1].split(";")[0].lower()
-                else:
-                    ext = ".jpg"
+            # parsed_url = urlparse(cover_url)
+            # original_filename = os.path.basename(parsed_url.path)
+            # _, ext = os.path.splitext(original_filename)
+            # if not ext:
+            #     content_type = response.headers.get("content-type")
+            #     if content_type and "image/" in content_type:
+            #         ext = "." + content_type.split("image/")[-1].split(";")[0].lower()
+            #     else:
+            #         ext = ".jpg"
 
-            sanitized_title = re.sub(
-                r'[\\/*?:"<>|]', "", book_title
-            )  # Remove invalid filename chars
-            sanitized_title = re.sub(r"[^\w\s-]", "", sanitized_title.lower())
-            sanitized_title = re.sub(r"[-\s]+", "-", sanitized_title).strip("-_")
+            # sanitized_title = re.sub(
+            #     r'[\\/*?:"<>|]', "", book_title
+            # )  # Remove invalid filename chars
+            # sanitized_title = re.sub(r"[^\w\s-]", "", sanitized_title.lower())
+            # sanitized_title = re.sub(r"[-\s]+", "-", sanitized_title).strip("-_")
 
-            filename = f"{book_date}_{sanitized_title[:50]}{ext}"
+            # filename = f"{book_date}_{sanitized_title[:50]}{ext}"
 
-            base_static_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "static", "images")
-            )
-            series_image_path = os.path.join(base_static_path, series)
-            os.makedirs(series_image_path, exist_ok=True)
+            # base_static_path = os.path.abspath(
+            #     os.path.join(os.path.dirname(__file__), "..", "..", "static", "images")
+            # )
+            # series_image_path = os.path.join(base_static_path, series)
+            # os.makedirs(series_image_path, exist_ok=True)
 
-            local_file_path = os.path.join(series_image_path, filename)
+            # local_file_path = os.path.join(series_image_path, filename)
 
-            with open(local_file_path, "wb") as f:
-                f.write(image_bytes)
+            # with open(local_file_path, "wb") as f:
+            #     f.write(image_bytes)
 
-            logger.info(f"Cover saved to: {local_file_path}")
+            # logger.info(f"Cover saved to: {local_file_path}")
 
-            relative_path_for_db = os.path.join("images", series, filename).replace(
-                "\\\\", "/"
-            )
-            return relative_path_for_db
+            # relative_path_for_db = os.path.join("images", series, filename).replace(
+            #     "\\\\", "/"
+            # )
+            # return relative_path_for_db
 
         except Exception as e:
             logger.error(f"Error saving cover image from {cover_url}: {e}")

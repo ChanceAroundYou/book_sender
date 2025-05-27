@@ -5,7 +5,7 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import { compression } from 'vite-plugin-compression2';
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
     plugins: [
         react(),
         // Gzip 压缩
@@ -21,7 +21,7 @@ export default defineConfig({
             deleteOriginalAssets: false,
         }),
         // 构建分析
-        visualizer({
+        mode !== 'production' && visualizer({
             open: false,
             gzipSize: true,
             brotliSize: true,
@@ -73,4 +73,4 @@ export default defineConfig({
         // 设置块大小警告的限制
         chunkSizeWarningLimit: 1000,
     },
-}); 
+})); 
