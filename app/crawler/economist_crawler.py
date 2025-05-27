@@ -54,9 +54,9 @@ class EconomistCrawler(BaseCrawler):
         # 在图像中查找 checkbox
         checkbox_pos = self.image_processor.find_checkbox(screenshot_path)
         # 删除截图文件
-        # if os.path.exists(screenshot_path):
-        #     os.remove(screenshot_path)
-            # logger.debug(f"删除截图: {screenshot_path}")
+        if os.path.exists(screenshot_path):
+            os.remove(screenshot_path)
+        # logger.debug(f"删除截图: {screenshot_path}")
 
         if checkbox_pos:
             # 如果找到 checkbox，点击它
@@ -68,7 +68,7 @@ class EconomistCrawler(BaseCrawler):
             await self.delay(1, 3)
             return True
         else:
-            # logger.info(")
+            # logger.info("未找到 checkbox")
             return False
 
     async def _take_screenshot(self, save_dir: str = "tmp"):
@@ -84,7 +84,7 @@ class EconomistCrawler(BaseCrawler):
         await self.page.screenshot(path=screenshot_path)
         return screenshot_path
 
-    async def get(self, url, max_wait_time=30, loaded_selector=None, soup=True):
+    async def get(self, url, max_wait_time=30, loaded_selector=None, is_raw=False):
         """安全访问页面，处理 Cloudflare 验证等情况"""
         logger.info(f"访问页面: {url}")
         await self.page.goto(url)
@@ -94,19 +94,27 @@ class EconomistCrawler(BaseCrawler):
             try:
                 if "Just a moment" in await self.page.title():
                     # await self.delay(5, 10)
-                    if await self._find_and_click_checkbox():
+                    if not await self._find_and_click_checkbox():
+                        await self.delay(5, 10)
+                        continue
+                    else:
                         await self.delay(5, 10)
 
                 # 检查页面是否加载完成
                 if loaded_selector is not None:
                     loaded_element = await self.page.query_selector(loaded_selector)
                     if loaded_element:
-                        content = await self.page.content()
-                        if soup:
+                        if not is_raw:
+                            content = await self.page.content()
                             return BeautifulSoup(content, "html.parser")
                         else:
-                            return content
-                print(await self.page.title())
+                            return self.page
+                else:
+                    if not is_raw:
+                        content = await self.page.content()
+                        return BeautifulSoup(content, "html.parser")
+                    else:
+                        return self.page
             except:
                 pass
             # 随机延迟后继续检测
@@ -118,63 +126,60 @@ class EconomistCrawler(BaseCrawler):
         self, cover_url: str, book_date: str, book_title: str, series: str
     ) -> str | None:
         """Downloads an image from a URL and saves it locally."""
-        image_page = None  # Initialize for graceful close in finally
         try:
             logger.info(f"Downloading cover from: {cover_url}")
 
-            soup = await self.get(cover_url, max_wait_time=60, loaded_selector="img")
-            print(soup)
+            # 使用 self.get 获取页面，这会自动处理 Cloudflare 检测
+            await self.get(cover_url, max_wait_time=60, is_raw=True)
+            
+            # 获取图片元素
+            img_element = await self.page.query_selector("img.size-full")
+            print(img_element, type(img_element))
+            if not img_element:
+                logger.error("Could not find full-size image on page")
+                return None
 
-            # if not response or not response.ok:
-            #     logger.error(
-            #         f"Failed to fetch image: {cover_url}, Status: {response.status if response else 'No response'}"
-            #     )
-            #     return None
+            # 获取图片的实际 src
+            img_src = await img_element.get_attribute("src")
+            print(img_src, type(img_src))
+            if not img_src:
+                logger.error("Image source not found")
+                return None
 
-            # image_bytes = await response.body()
+            image_bytes = await self.page.screenshot(type="jpeg", quality=100)
+            print(image_bytes, type(image_bytes))
 
-            # parsed_url = urlparse(cover_url)
-            # original_filename = os.path.basename(parsed_url.path)
-            # _, ext = os.path.splitext(original_filename)
-            # if not ext:
-            #     content_type = response.headers.get("content-type")
-            #     if content_type and "image/" in content_type:
-            #         ext = "." + content_type.split("image/")[-1].split(";")[0].lower()
-            #     else:
-            #         ext = ".jpg"
+            # 处理文件名和路径
+            sanitized_title = re.sub(r'[\\/*?:"<>|]', "", book_title)
+            sanitized_title = re.sub(r"[^\w\s-]", "", sanitized_title.lower())
+            sanitized_title = re.sub(r"[-\s]+", "-", sanitized_title).strip("-_")
 
-            # sanitized_title = re.sub(
-            #     r'[\\/*?:"<>|]', "", book_title
-            # )  # Remove invalid filename chars
-            # sanitized_title = re.sub(r"[^\w\s-]", "", sanitized_title.lower())
-            # sanitized_title = re.sub(r"[-\s]+", "-", sanitized_title).strip("-_")
+            filename = f"{book_date}_{sanitized_title[:50]}.jpg"
 
-            # filename = f"{book_date}_{sanitized_title[:50]}{ext}"
+            # 设置保存路径
+            base_static_path = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "..", "static", "images")
+            )
+            series_image_path = os.path.join(base_static_path, series)
+            os.makedirs(series_image_path, exist_ok=True)
 
-            # base_static_path = os.path.abspath(
-            #     os.path.join(os.path.dirname(__file__), "..", "..", "static", "images")
-            # )
-            # series_image_path = os.path.join(base_static_path, series)
-            # os.makedirs(series_image_path, exist_ok=True)
+            local_file_path = os.path.join(series_image_path, filename)
 
-            # local_file_path = os.path.join(series_image_path, filename)
+            # 保存图片
+            with open(local_file_path, "wb") as f:
+                f.write(image_bytes)
 
-            # with open(local_file_path, "wb") as f:
-            #     f.write(image_bytes)
+            logger.info(f"Cover saved to: {local_file_path}")
 
-            # logger.info(f"Cover saved to: {local_file_path}")
-
-            # relative_path_for_db = os.path.join("images", series, filename).replace(
-            #     "\\\\", "/"
-            # )
-            # return relative_path_for_db
+            # 返回相对路径
+            relative_path_for_db = os.path.join("images", series, filename).replace(
+                "\\", "/"
+            )
+            return relative_path_for_db
 
         except Exception as e:
             logger.error(f"Error saving cover image from {cover_url}: {e}")
             return None
-        finally:
-            if image_page and not image_page.is_closed():
-                await image_page.close()
 
     async def get_books(self, page: int = 1) -> List[dict]:
         url = self.base_url.format(page)
@@ -211,12 +216,13 @@ class EconomistCrawler(BaseCrawler):
             if (
                 raw_cover_link and date and title
             ):  # title & date for filename, raw_cover_link for source
-                local_uri = await self.save_cover_image(
-                    cover_url=raw_cover_link,
-                    book_date=date,
-                    book_title=title,
-                    series=self.series_name,
-                )
+                # local_uri = await self.save_cover_image(
+                #     cover_url=raw_cover_link,
+                #     book_date=date,
+                #     book_title=title,
+                #     series=self.series_name,
+                # )
+                local_uri = raw_cover_link
                 if local_uri:
                     book_dict["cover_link"] = local_uri
 

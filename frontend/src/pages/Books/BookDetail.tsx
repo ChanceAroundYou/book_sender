@@ -27,7 +27,7 @@ import { fetchCurrentUser } from '@/store/slices/authSlice';
 import type { Book, UserSubscriptionParams, DistributeBookParams } from '@/types';
 import { renderSeries } from '@/utils';
 import { utilService } from '@/services/api';
-
+import BookCard from '@/components/base/BookCard';
 const { Title, Text, Paragraph } = Typography;
 
 const BookDetailPage = () => {
@@ -313,27 +313,11 @@ const BookDetailPage = () => {
                     <List
                         loading={seriesLoading}
                         dataSource={seriesBooks}
-                        grid={{ gutter: 16, column: 4 }}
+                        grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }}
                         locale={{ emptyText: '暂无其他同系列书籍' }}
                         renderItem={item => (
                             <List.Item>
-                                <div
-                                    style={{ cursor: 'pointer', textAlign: 'center' }}
-                                    onClick={() => navigate(`/books/${item.id}`)}
-                                >
-                                    <Image
-                                        src={utilService.getProxiedImageUrl(item.cover_link)}
-                                        alt={item.title}
-                                        width={120}
-                                        height={160}
-                                        style={{ objectFit: 'cover', borderRadius: 8, marginBottom: 8 }}
-                                        preview={false}
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src = '';
-                                        }}
-                                    />
-                                    <div style={{ fontWeight: 500, marginTop: 4 }}>{item.title}</div>
-                                </div>
+                                <BookCard book={item} onClick={() => navigate(`/books/${item.id}`)} />
                             </List.Item>
                         )}
                     />

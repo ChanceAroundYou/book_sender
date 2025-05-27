@@ -1,54 +1,51 @@
-import { useEffect, useState } from 'react';
-import { Row, Col, Typography, Space, List, Card, Tag, Spin, Empty, Alert } from 'antd';
+import { useEffect } from 'react';
+import { Typography, Card, Row, Col, Statistic, message, Spin, Alert, Empty, List, Space } from 'antd';
+import { BookOutlined, TeamOutlined, RocketOutlined } from '@ant-design/icons';
+import { RootState, useAppDispatch, useAppSelector } from '@/store';
 import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector, RootState } from '@/store';
+import { fetchBooks } from '@/store/slices/bookSlice';
+import { fetchUsers } from '@/store/slices/userSlice';
+import { fetchStats } from '@/store/slices/statsSlice';
 import type { Book } from '@/types';
-import { fetchLatestBooks } from '@/store/slices/bookSlice';
-import { BookOutlined, FireOutlined, StarOutlined } from '@ant-design/icons';
+import BookCard from '@/components/base/BookCard';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
-const BookDisplayCard: React.FC<{ book: Book; onClick: (id: number) => void }> = ({ book, onClick }) => (
-    <Card
-        hoverable
-        className="h-full flex flex-col"
-        onClick={() => onClick(book.id)}
-        cover={
-            <img
-                alt={book.title}
-                src={book.cover_link || '/placeholder-cover.jpg'}
-                className="h-48 w-full object-cover aspect-[3/4]"
-            />
-        }
-    >
-        <Card.Meta
-            title={<Text ellipsis={{ tooltip: book.title }}>{book.title}</Text>}
-            description={<Text type="secondary" ellipsis={{ tooltip: book.author || 'N/A' }}>{book.author || 'N/A'}</Text>}
-        />
-        <div className="mt-auto pt-2">
-            <Tag color="blue">{book.file_format?.toUpperCase()}</Tag>
-        </div>
-    </Card>
-);
-
-const MainHomePage = () => {
-    const navigate = useNavigate();
+const HomePage = () => {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
 
-    const { user } = useAppSelector((state: RootState) => state.auth);
+    const { loading: booksLoading, error: booksError } = useAppSelector((state: RootState) => state.book);
+    const { loading: usersLoading, error: usersError } = useAppSelector((state: RootState) => state.user);
+    const { totalBooks, totalUsers, loading: statsLoading, error: statsError } = useAppSelector((state: RootState) => state.stats);
     const { items: latestBooks, loading: latestBooksLoading, error: latestBooksError } = useAppSelector((state: RootState) => state.book);
 
-    const [featuredLoading] = useState(false);
-    const [popularLoading] = useState(false);
+    // console.log('Stats from Redux:', { totalBooks, totalUsers, statsLoading, statsError });
 
     useEffect(() => {
-        dispatch(fetchLatestBooks({ limit: 6 }));
-
+        // Fetch initial data
+        dispatch(fetchBooks());
+        dispatch(fetchUsers());
+        dispatch(fetchStats());
     }, [dispatch]);
+
+    useEffect(() => {
+        if (booksError) {
+            message.error(`Error fetching book stats: ${booksError}`);
+        }
+        if (usersError) {
+            message.error(`Error fetching user stats: ${usersError}`);
+        }
+        if (statsError) {
+            message.error(`Error fetching stats: ${statsError}`);
+        }
+    }, [booksError, usersError, statsError]);
 
     const handleBookClick = (id: number) => {
         navigate(`/books/${id}`);
     };
+
+    const isLoadingStats = booksLoading || usersLoading || statsLoading;
 
     const renderBookSection = (title: string, books: Book[], loading: boolean, icon?: React.ReactNode, error?: string | null) => (
         <Col span={24} className="mb-8">
@@ -68,7 +65,7 @@ const MainHomePage = () => {
                     dataSource={books}
                     renderItem={book => (
                         <List.Item>
-                            <BookDisplayCard book={book} onClick={handleBookClick} />
+                            <BookCard book={book} onClick={handleBookClick} userBookStatus={'distributed'} />
                         </List.Item>
                     )}
                 />
@@ -77,51 +74,66 @@ const MainHomePage = () => {
     );
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <Row gutter={[24, 24]}>
-                <Col span={24} className="mb-6 text-center md:text-left">
-                    <Title level={2}>
-                        {user ? `Welcome back, ${user.username}!` : 'Welcome to Book Sender'}
-                    </Title>
-                    <Paragraph type="secondary">
-                        Explore our collection of books. New titles added regularly.
-                    </Paragraph>
+        <div className="p-4 md:p-6 max-w-6xl mx-auto">
+            <Title level={1} className="text-center mb-8">
+                欢迎使用 Book Sender
+            </Title>
+            <Paragraph className="text-center text-lg mb-12">
+                一个简单而强大的书籍分享平台
+            </Paragraph>
+
+            <Row gutter={[24, 24]} className="mb-12">
+                <Col xs={24} sm={12} md={8}>
+                    <Card>
+                        <Statistic title="总书籍数" value={totalBooks} loading={isLoadingStats} prefix={<BookOutlined />} />
+                    </Card>
                 </Col>
+                <Col xs={24} sm={12} md={8}>
+                    <Card>
+                        <Statistic title="注册用户数" value={totalUsers} loading={isLoadingStats} prefix={<TeamOutlined />} />
+                    </Card>
+                </Col>
+            </Row>
 
-                {renderBookSection('Latest Additions', latestBooks, latestBooksLoading, <BookOutlined />, latestBooksError)}
-
-                <Col span={24} className="mb-8">
-                    <Title level={3} className="mb-4"><Space><StarOutlined />Featured Books</Space></Title>
-                    {featuredLoading && (
-                        <div className="text-center py-8">
-                            <Spin>
-                                <div style={{ marginTop: 24 }}>Loading featured books...</div>
-                            </Spin>
+            <Row gutter={[24, 24]} className="mt-8">
+                <Col xs={24} md={8}>
+                    <Card hoverable className="h-full">
+                        <div className="flex flex-col items-center text-center">
+                            <BookOutlined className="text-4xl mb-4 text-blue-500" />
+                            <Title level={3}>丰富的书籍资源</Title>
+                            <Paragraph>
+                                探索我们精心挑选的书籍收藏，找到您感兴趣的内容。
+                            </Paragraph>
                         </div>
-                    )}
-                    {!featuredLoading && (
-                        <Empty description="Featured books are coming soon!">
-                        </Empty>
-                    )}
+                    </Card>
+                </Col>
+                <Col xs={24} md={8}>
+                    <Card hoverable className="h-full">
+                        <div className="flex flex-col items-center text-center">
+                            <TeamOutlined className="text-4xl mb-4 text-green-500" />
+                            <Title level={3}>社区互动</Title>
+                            <Paragraph>
+                                加入我们的社区，与其他读者分享您的阅读体验。
+                            </Paragraph>
+                        </div>
+                    </Card>
+                </Col>
+                <Col xs={24} md={8}>
+                    <Card hoverable className="h-full">
+                        <div className="flex flex-col items-center text-center">
+                            <RocketOutlined className="text-4xl mb-4 text-purple-500" />
+                            <Title level={3}>便捷的分享</Title>
+                            <Paragraph>
+                                轻松分享您喜爱的书籍，让更多人受益。
+                            </Paragraph>
+                        </div>
+                    </Card>
                 </Col>
 
-                <Col span={24} className="mb-8">
-                    <Title level={3} className="mb-4"><Space><FireOutlined />Popular Books</Space></Title>
-                    {popularLoading && (
-                        <div className="text-center py-8">
-                            <Spin>
-                                <div style={{ marginTop: 24 }}>Loading popular books...</div>
-                            </Spin>
-                        </div>
-                    )}
-                    {!popularLoading && (
-                        <Empty description="Popular books selection will be available shortly!">
-                        </Empty>
-                    )}
-                </Col>
+                {renderBookSection('最新添加', latestBooks.slice(0, 6), latestBooksLoading, <BookOutlined />, latestBooksError)}
             </Row>
         </div>
     );
 };
 
-export default MainHomePage; 
+export default HomePage; 

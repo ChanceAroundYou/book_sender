@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector, RootState } from '@/store';
 import { fetchCurrentUser } from '@/store/slices/authSlice';
 import { utilService } from '@/services/api';
+import BookCard from '@/components/base/BookCard';
 
 const { Title } = Typography;
 
@@ -49,44 +50,11 @@ const UserLibraryPage = () => {
                 <List
                     loading={loading}
                     dataSource={userBooks}
-                    grid={{ gutter: 16, column: 4 }}
+                    grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }}
                     renderItem={item => {
                         return (
                             <List.Item>
-                                <div
-                                    style={{ cursor: 'pointer', textAlign: 'center' }}
-                                    onClick={() => navigate(`/books/${item.id}`)}
-                                >
-                                    <Image
-                                        src={utilService.getProxiedImageUrl(item.cover_link)}
-                                        alt={item.title}
-                                        width={120}
-                                        height={160}
-                                        style={{ objectFit: 'cover', borderRadius: 8, marginBottom: 8 }}
-                                        preview={false}
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src = '';
-                                        }}
-                                    />
-                                    <div style={{ fontWeight: 500, marginTop: 4 }}>
-                                        {`${item.title}  `}
-                                        {item.status === "distributed" ? <Tag color="green"
-                                            style={{ marginBottom: '8px' }}>
-                                            已发送
-                                        </Tag>
-                                            : item.status === 'downloaded' ?
-                                                <Tag color="blue"
-                                                    style={{ marginBottom: '8px' }}>
-                                                    已下载
-                                                </Tag>
-                                                :
-                                                <Tag color="red"
-                                                    style={{ marginBottom: '8px' }}>
-                                                    未下载
-                                                </Tag>
-                                        }
-                                    </div>
-                                </div>
+                                <BookCard book={item} onClick={() => navigate(`/books/${item.id}`)} userBookStatus={item.status} />
                             </List.Item>
                         )
                     }}
