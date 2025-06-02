@@ -4,7 +4,12 @@ from app.celery_app import celery_app
 from app.config import settings
 from app.database import Book, BookSeries, UserBookStatus, get_denpend_db
 from app.task.base import BaseTask
-from app.task.tasks import crawl_books_task, distribute_books_task, download_book_task
+from app.task.tasks import (
+    crawl_books_task,
+    crawl_book_task,
+    distribute_books_task,
+    download_book_task,
+)
 
 max_retries = settings.CELERY_TASK_MAX_RETRIES
 SERIES_LIST = BookSeries.get_series_list()
@@ -21,6 +26,22 @@ def crawl_books_scheduler(self: BaseTask, page=1):
         for series in filtered_series_list:
             logger.info(f"开始爬取{series}新书籍列表")
             crawl_books_task.delay(series, page=page)
+
+    return self.run_with_retry(_task)
+
+@celery_app.task(bind=True, base=BaseTask)
+def crawl_book_scheduler(self: BaseTask):
+    # 查询新书籍逻辑
+    def _task():
+        with get_denpend_db() as db:
+            books = Book.query(
+                db, detail_link={"operator": "in", "value": ["", None, "null"]}
+            )
+            book_dicts = [book.to_dict() for book in books]
+
+        for book_dict in book_dicts:
+            logger.info(f"开始爬取{book_dict['title']}详情")
+            crawl_book_task.delay(book_dict)
 
     return self.run_with_retry(_task)
 

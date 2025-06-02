@@ -122,65 +122,6 @@ class EconomistCrawler(BaseCrawler):
         # 超时抛出异常
         raise TimeoutError(f"页面加载超时 ({max_wait_time}秒)")
 
-    async def save_cover_image(
-        self, cover_url: str, book_date: str, book_title: str, series: str
-    ) -> str | None:
-        """Downloads an image from a URL and saves it locally."""
-        try:
-            logger.info(f"Downloading cover from: {cover_url}")
-
-            # 使用 self.get 获取页面，这会自动处理 Cloudflare 检测
-            await self.get(cover_url, max_wait_time=60, is_raw=True)
-            
-            # 获取图片元素
-            img_element = await self.page.query_selector("img.size-full")
-            print(img_element, type(img_element))
-            if not img_element:
-                logger.error("Could not find full-size image on page")
-                return None
-
-            # 获取图片的实际 src
-            img_src = await img_element.get_attribute("src")
-            print(img_src, type(img_src))
-            if not img_src:
-                logger.error("Image source not found")
-                return None
-
-            image_bytes = await self.page.screenshot(type="jpeg", quality=100)
-            print(image_bytes, type(image_bytes))
-
-            # 处理文件名和路径
-            sanitized_title = re.sub(r'[\\/*?:"<>|]', "", book_title)
-            sanitized_title = re.sub(r"[^\w\s-]", "", sanitized_title.lower())
-            sanitized_title = re.sub(r"[-\s]+", "-", sanitized_title).strip("-_")
-
-            filename = f"{book_date}_{sanitized_title[:50]}.jpg"
-
-            # 设置保存路径
-            base_static_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "static", "images")
-            )
-            series_image_path = os.path.join(base_static_path, series)
-            os.makedirs(series_image_path, exist_ok=True)
-
-            local_file_path = os.path.join(series_image_path, filename)
-
-            # 保存图片
-            with open(local_file_path, "wb") as f:
-                f.write(image_bytes)
-
-            logger.info(f"Cover saved to: {local_file_path}")
-
-            # 返回相对路径
-            relative_path_for_db = os.path.join("images", series, filename).replace(
-                "\\", "/"
-            )
-            return relative_path_for_db
-
-        except Exception as e:
-            logger.error(f"Error saving cover image from {cover_url}: {e}")
-            return None
-
     async def get_books(self, page: int = 1) -> List[dict]:
         url = self.base_url.format(page)
         soup = await self.get(url, loaded_selector="div#page")
@@ -199,7 +140,7 @@ class EconomistCrawler(BaseCrawler):
                 date = datetime.strptime(date, "%d.%m.%Y, %H:%M").strftime("%Y-%m-%d")
 
             cover_element = book_element.find("img", class_="wp-post-image")
-            raw_cover_link = (
+            cover_link = (
                 cover_element["data-src"]
                 if cover_element and "data-src" in cover_element.attrs
                 else None
@@ -210,21 +151,8 @@ class EconomistCrawler(BaseCrawler):
                 "date": date,
                 "series": self.series_name,
                 "detail_link": detail_link,
-                "cover_link": None,  # Default to None, will be populated if successfully saved
+                "cover_link": cover_link,  # Default to None, will be populated if successfully saved
             }
-
-            if (
-                raw_cover_link and date and title
-            ):  # title & date for filename, raw_cover_link for source
-                # local_uri = await self.save_cover_image(
-                #     cover_url=raw_cover_link,
-                #     book_date=date,
-                #     book_title=title,
-                #     series=self.series_name,
-                # )
-                local_uri = raw_cover_link
-                if local_uri:
-                    book_dict["cover_link"] = local_uri
 
             book_dicts.append(book_dict)
         logger.info(f"找到 {len(book_dicts)} 期杂志")

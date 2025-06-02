@@ -89,7 +89,8 @@ const RegisterPage = () => {
                 >
                     <BaseInput
                         placeholder="请输入邮箱"
-                        autoComplete="email"
+                        autoComplete="username"
+                        name="username"
                     />
                 </Form.Item>
 
@@ -104,14 +105,14 @@ const RegisterPage = () => {
                         </span>
                     }
                     rules={[
-                        { min: 3, message: '用户名至少3个字符' },
+                        { min: 2, message: '用户名至少2个字符' },
                         { max: 20, message: '用户名最多20个字符' },
-                        { pattern: /^[a-zA-Z0-9_-]+$/, message: '用户名只能包含字母、数字、下划线和连字符' }
                     ]}
                 >
                     <BaseInput
                         placeholder="请输入用户名（选填）"
-                        autoComplete="username"
+                        autoComplete="nickname"
+                        name="nickname"
                     />
                 </Form.Item>
 
@@ -121,16 +122,12 @@ const RegisterPage = () => {
                     rules={[
                         { required: true, message: '请输入密码' },
                         { min: 6, message: '密码至少6个字符' },
-                        // { max: 32, message: '密码最多32个字符' }, // Max length can be omitted if not strict
-                        // {
-                        //     pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
-                        //     message: '密码必须包含大小写字母和数字' // Simplified for now
-                        // }
                     ]}
                 >
                     <BaseInput.Password
                         placeholder="请输入密码"
                         autoComplete="new-password"
+                        name="password"
                     />
                 </Form.Item>
 
@@ -153,6 +150,7 @@ const RegisterPage = () => {
                     <BaseInput.Password
                         placeholder="请确认密码"
                         autoComplete="new-password"
+                        name="password_confirmation"
                     />
                 </Form.Item>
 

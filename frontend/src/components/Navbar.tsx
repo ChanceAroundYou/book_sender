@@ -1,12 +1,11 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Menu, Dropdown, Button, Input, Space } from 'antd';
+import { Menu, Dropdown, Button, Space } from 'antd';
 import { UserOutlined, LoginOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAppSelector, RootState, store, useAppDispatch } from '@/store';
 import { logoutUser, fetchCurrentUser } from '@/store/slices/authSlice';
 
-const { Search } = Input;
 
 const Navbar = () => {
     const navigate = useNavigate();
@@ -56,11 +55,7 @@ const Navbar = () => {
         },
     ];
 
-    const handleSearch = (value: string) => {
-        if (value) {
-            navigate(`/books?search=${encodeURIComponent(value)}`);
-        }
-    };
+
 
     const getSelectedKeys = () => {
         const currentPath = location.pathname;
@@ -95,19 +90,11 @@ const Navbar = () => {
             </div>
             <div className="flex items-center space-x-4">
                 {currentUser ? (
-                    <>
-                        <Search
-                            placeholder="搜索书籍..."
-                            allowClear
-                            onSearch={handleSearch}
-                            style={{ width: 300 }}
-                        />
-                        <Space>
-                            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-                                <Button icon={<UserOutlined />}>用户中心</Button>
-                            </Dropdown>
-                        </Space>
-                    </>
+                    <Space>
+                        <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+                            <Button icon={<UserOutlined />}>用户中心</Button>
+                        </Dropdown>
+                    </Space>
                 ) : (
                     <Button icon={<LoginOutlined />} onClick={() => navigate('/auth/login')}>
                         登录

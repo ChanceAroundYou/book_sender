@@ -30,12 +30,16 @@ celery_app.conf.beat_schedule = {
         "task": "app.task.schedulers.crawl_books_scheduler",
         "schedule": 3600,
     },
+    "crawl_book": {
+        "task": "app.task.schedulers.crawl_book_scheduler",
+        "schedule": 600,
+    },
     "download_books": {
         "task": "app.task.schedulers.download_books_scheduler",
         "schedule": 600,
     },
     "distribute_books": {
         "task": "app.task.schedulers.distribute_books_scheduler",
-        "schedule": 60 * 60 * 24,
+        "schedule": 60 * 60 * 3,
     },
 }

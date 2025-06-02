@@ -79,7 +79,8 @@ const LoginPage = () => {
                 >
                     <BaseInput
                         placeholder="请输入邮箱"
-                        autoComplete="email"
+                        autoComplete="username"
+                        name="username"
                     />
                 </Form.Item>
 
@@ -94,6 +95,7 @@ const LoginPage = () => {
                     <BaseInput.Password
                         placeholder="请输入密码"
                         autoComplete="current-password"
+                        name="password"
                     />
                 </Form.Item>
 
