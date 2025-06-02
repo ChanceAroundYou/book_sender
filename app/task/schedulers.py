@@ -35,13 +35,13 @@ def crawl_book_scheduler(self: BaseTask):
     def _task():
         with get_denpend_db() as db:
             books = Book.query(
-                db, detail_link={"operator": "in", "value": ["", None, "null"]}
+                db, download_link={"operator": "is null"}
             )
             book_dicts = [book.to_dict() for book in books]
 
         for book_dict in book_dicts:
             logger.info(f"开始爬取{book_dict['title']}详情")
-            crawl_book_task.delay(book_dict)
+            crawl_book_task.delay(BookSeries.simplify_series(book_dict["series"]), book_dict)
 
     return self.run_with_retry(_task)
 

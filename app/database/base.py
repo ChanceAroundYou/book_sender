@@ -104,6 +104,10 @@ class ModelMixin(Generic[T], DictMixin):
                 query = query.filter(getattr(cls, key).notlike(f"%{val}%"))
             elif operator == "between":
                 query = query.filter(getattr(cls, key).between(val[0], val[1]))
+            elif operator == "is null":
+                query = query.filter(getattr(cls, key).is_(None))
+            elif operator == "is not null":
+                query = query.filter(getattr(cls, key).isnot_(None))
             else:
                 query = query.filter(getattr(cls, key) == val)
 
