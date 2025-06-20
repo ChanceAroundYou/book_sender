@@ -23,7 +23,7 @@ const MainLayout = () => {
                 </div>
             </Content>
             <Footer className="text-center bg-white border-t border-gray-200">
-                Book Sender ©{new Date().getFullYear()} Created with ❤️ by 粘粘宝
+                Book Sender ©{new Date().getFullYear()} Created with ❤️ by 深圳市几何视界软件有限责任公司
             </Footer>
         </Layout>
     );
