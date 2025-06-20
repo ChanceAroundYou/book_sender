@@ -62,8 +62,8 @@ class Settings(BaseSettings):
         "http://localhost:8000",
         "http://localhost:25688",
         "http://192.168.1.6:8000",
-        "http://192.168.1.6:25688",  # Removed duplicate 192.168.1.6:8000
-        "http://book.xiaokubao.space",
+        "http://192.168.1.6:25688",
+        "https://book.xiaokubao.space",
         "https://book.xiaokubao.cloud",
         "https://home.xiaokubao.space",
         "https://book.pages.dev",
