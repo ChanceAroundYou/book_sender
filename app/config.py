@@ -65,6 +65,7 @@ class Settings(BaseSettings):
         "http://192.168.1.6:25688",  # Removed duplicate 192.168.1.6:8000
         "http://book.xiaokubao.space",
         "https://book.xiaokubao.cloud",
+        "https://home.xiaokubao.space",
         "https://book.pages.dev",
         "https://booksender.pages.dev",
         "https://booksender.xiaokubao.space",
