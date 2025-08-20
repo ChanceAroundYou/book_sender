@@ -11,9 +11,9 @@ from app.config import settings
 
 
 class ImageDownloader:
-    def __init__(self, static_dir: Path = settings.STATIC_DIR / "images"):
-        self.static_dir = static_dir
-        self.static_dir.mkdirs(exist_ok=True)
+    def __init__(self):
+        self.img_dir = settings.STATIC_DIR / "images"
+        self.img_dir.mkdirs(exist_ok=True)
 
     def _get_file_extension(self, url: str, content_type: str = None) -> str:
         """从URL或Content-Type中获取文件扩展名"""
@@ -85,7 +85,7 @@ class ImageDownloader:
                 # 生成文件名和路径
                 filename = self._generate_filename(title, url)
                 extension = self._get_file_extension(url, content_type)
-                file_path = self.static_dir / f"{filename}{extension}"
+                file_path = self.img_dir / f"{filename}{extension}"
 
                 # 如果文件已存在，直接返回路径
                 if file_path.exists():

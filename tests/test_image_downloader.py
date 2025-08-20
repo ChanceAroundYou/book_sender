@@ -11,7 +11,7 @@ def temp_static_dir():
     """创建临时静态目录"""
     with tempfile.TemporaryDirectory() as temp_dir:
         static_dir = Path(temp_dir) / "static" / "images"
-        static_dir.mkdir(parents=True, exist_ok=True)
+        static_dir.mkdirs(exist_ok=True)
         yield static_dir
 
 

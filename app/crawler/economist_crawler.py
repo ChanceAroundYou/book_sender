@@ -147,11 +147,11 @@ class EconomistCrawler(BaseCrawler):
             )
 
             # 下载封面图片
-            cover_path = None
             if cover_link:
-                cover_path = await self.image_downloader.download_image(
-                    cover_link, title
-                )
+                try:
+                    await self.image_downloader.download_image(cover_link, title)
+                except Exception as e:
+                    logger.error(f"下载封面图片失败: {e}")
 
             book_dict = {
                 "title": title,
@@ -159,7 +159,6 @@ class EconomistCrawler(BaseCrawler):
                 "series": self.series_name,
                 "detail_link": detail_link,
                 "cover_link": cover_link,  # 原始链接
-                "cover_path": cover_path,  # 本地保存路径
             }
 
             book_dicts.append(book_dict)
