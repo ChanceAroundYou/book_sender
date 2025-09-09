@@ -41,6 +41,8 @@ load_env_file()
 
 class Settings(BaseSettings):
     ROOT_DIR: Path = ROOT_DIR
+    TMP_DIR: Path = ROOT_DIR / "tmp"
+    STATIC_DIR: Path = ROOT_DIR / "static"
     PROJECT_NAME: str = "Book Sender"
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"

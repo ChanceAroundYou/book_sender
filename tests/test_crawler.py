@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 
+from app.config import settings
 from app.crawler.economist_crawler import EconomistCrawler
 from app.downloader.economist_downloader import FileDownloader
 
@@ -30,10 +31,10 @@ async def test_get_books(crawler: EconomistCrawler):
 
     # 验证每本书的基本信息
     for book_dict in book_dicts:
-        assert book_dict['title'] is not None
-        assert book_dict['detail_link'] is not None
-        assert book_dict['date'] is not None
-        assert book_dict['cover_link'] is not None
+        assert book_dict["title"] is not None
+        assert book_dict["detail_link"] is not None
+        assert book_dict["date"] is not None
+        assert book_dict["cover_link"] is not None
 
 
 @pytest.mark.asyncio
@@ -46,38 +47,38 @@ async def test_get_book(crawler: EconomistCrawler):
     # 获取第一本杂志的详情
     book_dict = await crawler.get_book(book_dicts[0])
     assert book_dict is not None
-    assert book_dict['download_link'] is not None
+    assert book_dict["download_link"] is not None
 
 
 @pytest.mark.asyncio
-async def test_download_book(crawler: EconomistCrawler, tmp_path: Path):
+async def test_download_book(crawler: EconomistCrawler):
     """测试下载杂志"""
     # 设置临时下载目录
-    download_dir = tmp_path / "downloads"
-    download_dir.mkdir()
+    download_dir = settings.TMP_DIR / "downloads"
+    download_dir.mkdirs(exist_ok=True)
 
     # 获取杂志列表和详情
     book_dicts = await crawler.get_books(page=1)
     assert len(book_dicts) > 0
     book_dict = await crawler.get_book(book_dicts[0])
-    assert book_dict['download_link'] is not None
+    assert book_dict["download_link"] is not None
 
     # 下载杂志
     downloader = FileDownloader()
     book_dict = await downloader.download_book(book_dict)
 
     # 验证下载结果
-    assert book_dict['file_path'] is not None
-    assert Path(book_dict['file_path']).exists()
-    assert Path(book_dict['file_path']).is_file()
+    assert book_dict["file_path"] is not None
+    assert Path(book_dict["file_path"]).exists()
+    assert Path(book_dict["file_path"]).is_file()
 
 
 @pytest.mark.asyncio
-async def test_crawler_integration(crawler: EconomistCrawler, tmp_path: Path):
+async def test_crawler_integration(crawler: EconomistCrawler):
     """测试爬虫完整流程"""
     # 设置临时下载目录
-    download_dir = tmp_path / "downloads"
-    download_dir.mkdir()
+    download_dir = settings.TMP_DIR / "downloads"
+    download_dir.mkdirs(exist_ok=True)
 
     # 1. 获取杂志列表
     book_dicts = await crawler.get_books(page=1)
@@ -85,13 +86,13 @@ async def test_crawler_integration(crawler: EconomistCrawler, tmp_path: Path):
 
     # 2. 获取第一本杂志的详情
     book_dict = await crawler.get_book(book_dicts[0])
-    assert book_dict['download_link'] is not None
+    assert book_dict["download_link"] is not None
 
     # 3. 下载杂志
     downloader = FileDownloader()
     book_dict = await downloader.download_book(book_dict)
 
     # 4. 验证结果
-    assert book_dict['file_path'] is not None
-    assert Path(book_dict['file_path']).exists()
-    assert Path(book_dict['file_path']).is_file()
+    assert book_dict["file_path"] is not None
+    assert Path(book_dict["file_path"]).exists()
+    assert Path(book_dict["file_path"]).is_file()

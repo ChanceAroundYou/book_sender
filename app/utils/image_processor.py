@@ -14,7 +14,7 @@ class ImageProcessor:
         :param debug_mode: 是否保存调试图像
         """
         self.debug = debug
-        self.debug_dir = settings.ROOT_DIR / "tmp" / "debug_images"
+        self.debug_dir = settings.TMP_DIR / "debug_images"
         self.debug_dir.mkdir(exist_ok=True, parents=True)
 
     def _save_debug_image(self, image: np.ndarray, name: str, image_path: str):

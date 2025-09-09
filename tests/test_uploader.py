@@ -2,13 +2,14 @@ from datetime import datetime
 
 import pytest
 
+from app.config import settings
 from app.uploader import create_uploader
 
 
 @pytest.fixture
-def test_file(tmp_path):
+def test_file():
     """创建测试文件"""
-    file_path = tmp_path / "test.txt"
+    file_path = settings.TMP_DIR / "test.txt"
     content = "This is a test file"
     file_path.write_text(content)
     return str(file_path)

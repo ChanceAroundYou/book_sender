@@ -2,13 +2,16 @@ import os
 import random
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import List
 
 from bs4 import BeautifulSoup
 from loguru import logger
 from playwright.async_api import async_playwright
 
+from app.config import settings
 from app.crawler.base import BaseCrawler
+from app.utils.image_downloader import ImageDownloader
 from app.utils.image_processor import ImageProcessor
 
 
@@ -20,6 +23,7 @@ class EconomistCrawler(BaseCrawler):
         self.context = None
         self.page = None
         self.image_processor = ImageProcessor(debug=False)
+        self.image_downloader = ImageDownloader()
         self.series_name = "the-economist"
         logger.info(f"Initialized crawler for series: {self.series_name}")
 
@@ -69,14 +73,12 @@ class EconomistCrawler(BaseCrawler):
             # logger.info("未找到 checkbox")
             return False
 
-    async def _take_screenshot(self, save_dir: str = "tmp"):
+    async def _take_screenshot(self, save_dir: Path = settings.TMP_DIR / "screenshot"):
         """截取指定区域的屏幕截图"""
         # 创建保存目录
-        os.makedirs(save_dir, exist_ok=True)
+        save_dir.mkdirs(exist_ok=True)
         now = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        screenshot_path = os.path.join(
-            save_dir, f"{now}_{random.randint(1, 50):02d}_full.png"
-        )
+        screenshot_path = save_dir / f"{now}_{random.randint(1, 50):02d}_full.png"
 
         # 使用 Playwright 截图
         await self.page.screenshot(path=screenshot_path)
@@ -144,12 +146,19 @@ class EconomistCrawler(BaseCrawler):
                 else None
             )
 
+            # 下载封面图片
+            if cover_link:
+                try:
+                    await self.image_downloader.download_image(cover_link, title)
+                except Exception as e:
+                    logger.error(f"下载封面图片失败: {e}")
+
             book_dict = {
                 "title": title,
                 "date": date,
                 "series": self.series_name,
                 "detail_link": detail_link,
-                "cover_link": cover_link,  # Default to None, will be populated if successfully saved
+                "cover_link": cover_link,  # 原始链接
             }
 
             book_dicts.append(book_dict)
