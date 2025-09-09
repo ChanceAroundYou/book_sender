@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from loguru import logger
 from pydantic_settings import BaseSettings
 
+ROOT_DIR = Path(__file__).parent.parent
 
 def load_env_file(env_file: Optional[str] = None) -> None:
     """加载环境变量文件
@@ -21,13 +22,10 @@ def load_env_file(env_file: Optional[str] = None) -> None:
         load_dotenv(env_file)
         return
 
-    # 获取项目根目录
-    root_dir = Path(__file__).parent.parent
-
     # 按优先级查找环境变量文件
     env_files = [
-        root_dir / ".env.local",  # 本地开发环境
-        root_dir / ".env",  # 默认环境
+        ROOT_DIR / ".env.local",  # 本地开发环境
+        ROOT_DIR / ".env",  # 默认环境
     ]
 
     # 加载找到的第一个环境变量文件
@@ -42,6 +40,7 @@ load_env_file()
 
 
 class Settings(BaseSettings):
+    ROOT_DIR: Path = ROOT_DIR
     PROJECT_NAME: str = "Book Sender"
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
@@ -118,7 +117,7 @@ class Settings(BaseSettings):
 
     # 文件存储配置
 
-    DOWNLOAD_DIR: str = os.getenv("DOWNLOAD_DIR", "downloads")
+    DOWNLOAD_DIR: Path = Path(os.getenv("DOWNLOAD_DIR", "downloads"))
     MAX_BOOK_SIZE: int = 100 * 1024 * 1024
 
     # 爬虫配置

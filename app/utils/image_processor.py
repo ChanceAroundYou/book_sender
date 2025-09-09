@@ -3,6 +3,7 @@ import numpy as np
 import logging
 import os
 from typing import Optional, Tuple
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +14,8 @@ class ImageProcessor:
         :param debug_mode: 是否保存调试图像
         """
         self.debug = debug
-        self.debug_dir = "debug_images"
-        if self.debug:
-            os.makedirs(self.debug_dir, exist_ok=True)
+        self.debug_dir = settings.ROOT_DIR / "tmp" / "debug_images"
+        self.debug_dir.mkdir(exist_ok=True, parents=True)
 
     def _save_debug_image(self, image: np.ndarray, name: str, image_path: str):
         """
@@ -30,7 +30,7 @@ class ImageProcessor:
         # 从原始图像路径中提取文件名（不含扩展名）
         base_name = os.path.splitext(os.path.basename(image_path))[0]
         # 构建调试图像保存路径
-        debug_path = os.path.join(self.debug_dir, f"{base_name}_{name}.png")
+        debug_path = self.debug_dir / f"{base_name}_{name}.png"
         cv2.imwrite(debug_path, image)
         logger.debug(f"保存调试图像: {debug_path}")
 

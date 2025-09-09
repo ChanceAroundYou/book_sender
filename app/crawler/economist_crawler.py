@@ -1,10 +1,8 @@
 import os
 import random
-import re
 import time
 from datetime import datetime
 from typing import List
-from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from loguru import logger

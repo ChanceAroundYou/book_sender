@@ -71,11 +71,14 @@ http://localhost:8000/docs
 ```
 book_sender/
 ├── app/
+│   ├── admin/          
 │   ├── api/            # API路由
 │   ├── crawler/        # 图书抓取器
+│   ├── database/
 │   ├── distributor/    # 图书分发器
-│   ├── models/         # 数据模型
-│   ├── core/           # 核心配置
+│   ├── downloader/            # API路由
+│   ├── task/            
+│   ├── uploader/            # API路由
 │   └── utils/          # 工具函数
 ├── static/             # 静态文件
 ├── templates/          # 模板文件
