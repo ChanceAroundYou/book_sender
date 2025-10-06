@@ -44,9 +44,9 @@ class Book(BaseModel, ModelMixin["Book"]):
         "User", secondary="user_books", viewonly=True, back_populates="books"
     )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, obj=None, exclude=None, max_depth=None) -> Dict[str, Any]:
         """实现接口方法：转换为字典"""
-        base_dict = super().to_dict()
+        base_dict = super().to_dict(obj=obj, exclude=exclude, max_depth=max_depth)
         base_dict["users"] = [
             {
                 "id": ub.user.id,
@@ -59,7 +59,7 @@ class Book(BaseModel, ModelMixin["Book"]):
         return base_dict
 
     @classmethod
-    def create(cls, db: Session, **kwargs) -> "Book":
+    def create(cls, db: Session, ignore_id: bool = True, **kwargs) -> "Book":
         """创建书籍并处理用户订阅关系"""
         title = kwargs.get("title")
         if not title:
@@ -67,15 +67,17 @@ class Book(BaseModel, ModelMixin["Book"]):
         series = BookSeries.get_series(title)
         kwargs["series"] = series
 
-        book = super().create(db, **kwargs)
+        book = super().create(db, ignore_id=ignore_id, **kwargs)
         users = User.query(db)
+        if not users:
+            return book
 
         for user in users:
             subscription = user.get_subscription(series)
-            if not subscription:
+            if subscription is None:
                 continue
 
-            date = subscription["subscribe_date"]
+            date = str(subscription["subscribe_date"])
             status = (
                 UserBookStatus.PENDING
                 if datetime.strptime(book.date, "%Y-%m-%d")
@@ -99,6 +101,9 @@ class Book(BaseModel, ModelMixin["Book"]):
     def downloaded(self, file_path: str, file_size: int, file_format: str) -> None:
         """实现接口方法：更新下载状态"""
         user_books = UserBook.query(self.db, book_id=self.id)
+        if not user_books:
+            return
+
         for user_book in user_books:
             user_book.downloaded()
 
@@ -125,6 +130,8 @@ class Book(BaseModel, ModelMixin["Book"]):
                 .filter((UserBook.book_id == self.id) & (User.email == email))
                 .all()
             )
+        if not user_books:
+            return
 
         for user_book in user_books:
             user_book.distributed()
@@ -133,6 +140,9 @@ class Book(BaseModel, ModelMixin["Book"]):
     def delete(self) -> None:
         """删除书籍及相关用户关系"""
         user_books = UserBook.query(self.db, book_id=self.id)
+        if not user_books:
+            return
+
         for user_book in user_books:
             self.db.delete(user_book)
         super().delete()

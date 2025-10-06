@@ -58,14 +58,14 @@ def crawl_book_task(self: BaseTask, series: str, book_dict: dict):
             if not book:
                 logger.warning("Book not found in the database.")
                 return
-            elif book.download_link:
+            elif str(book.download_link) != "":
                 logger.info(f"Book {book.title} detail is already crawled.")
                 return
             book_dict = book.to_dict()
 
         async with create_crawler(BookSeries.simplify_series(series)) as crawler:
             book_dict = await crawler.get_book(book_dict)
-            if not book_dict.get("download_link", ""):
+            if not book_dict.get("download_link"):
                 logger.warning("Book detail is not found.")
                 return
 
@@ -93,7 +93,7 @@ def download_book_task(self: BaseTask, book_dict: dict):
             if not book:
                 logger.warning("Book not found in the database.")
                 return
-            elif book.file_path and book.file_size > 0:
+            elif str(book.file_path) != "" and int(book.file_size) > 0:
                 logger.info(f"Book {book.title} is already downloaded.")
                 return
             book_dict = book.to_dict()
@@ -117,7 +117,7 @@ def download_book_task(self: BaseTask, book_dict: dict):
 
 
 @celery_app.task(bind=True, base=BaseTask)
-def distribute_book_task(self: BaseTask, book_dict: dict, email: str = None):
+def distribute_book_task(self: BaseTask, book_dict: dict, email: str = ''):
     """分发书籍任务"""
 
     async def _task(book_dict):
@@ -149,7 +149,7 @@ def distribute_book_task(self: BaseTask, book_dict: dict, email: str = None):
 
 
 @celery_app.task(bind=True, base=BaseTask)
-def distribute_books_task(self: BaseTask, book_dicts: list[dict], email: str = None):
+def distribute_books_task(self: BaseTask, book_dicts: list[dict], email: str = ''):
     """批量分发书籍任务"""
 
     async def _task(book_dicts):

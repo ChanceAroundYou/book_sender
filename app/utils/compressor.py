@@ -4,7 +4,7 @@ from typing import Dict
 import time
 from loguru import logger
 
-def compress_to_7z(input_path: str, compression_level: int = 9) -> Dict:
+def compress_to_7z(input_path: str | Path, compression_level: int = 9) -> Dict:
     """
     将文件压缩为7z格式并测试压缩效果
     
@@ -12,7 +12,9 @@ def compress_to_7z(input_path: str, compression_level: int = 9) -> Dict:
         input_path: 输入文件路径
         compression_level: 压缩级别 (0-9)，默认9为最高压缩率
     """
-    input_path = Path(input_path)
+    if isinstance(input_path, str):
+        input_path = Path(input_path)
+
     if not input_path.exists():
         raise FileNotFoundError(f"文件不存在: {input_path}")
         

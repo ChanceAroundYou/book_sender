@@ -4,12 +4,12 @@ from app.distributor.base import BaseDistributor
 from app.distributor.ses_distributor import SESDistributor
 from app.distributor.smtp_distributor import SMTPDistributor
 
-@overload
-def create_distributor(distributor_type: Literal['smtp'], *args, **kwargs) -> SMTPDistributor:
-    ...
+# @overload
+# def create_distributor(distributor_type: Literal['smtp'], *args, **kwargs) -> SMTPDistributor:
+#     ...
 
-@overload
-def create_distributor(distributor_type: Literal['ses'], *args, **kwargs) -> SESDistributor:
+# @overload
+# def create_distributor(distributor_type: Literal['ses'], *args, **kwargs) -> SESDistributor:
     ...
 
 def create_distributor(distributor_type: str, *args, **kwargs) -> BaseDistributor:

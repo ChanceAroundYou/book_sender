@@ -1,11 +1,8 @@
-from typing import Type, overload, Literal
+from typing import Type
 
 from app.crawler.base import BaseCrawler
 from app.crawler.economist_crawler import EconomistCrawler
 
-@overload
-def create_crawler(crawler_type: Literal['economist'], *args, **kwargs) -> EconomistCrawler:
-    ...
 
 def create_crawler(crawler_type: str, *args, **kwargs) -> BaseCrawler:
     """创建爬虫实例

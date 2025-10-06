@@ -26,7 +26,7 @@ class BaseCrawler:
     async def get_books(self, page: int = 1) -> List[dict]:
         raise NotImplementedError
 
-    async def get_book(self, book: dict) -> dict:
+    async def get_book(self, book_dict: dict) -> dict:
         raise NotImplementedError
     
     async def close(self):

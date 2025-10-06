@@ -28,16 +28,16 @@ class EconomistCrawler(BaseCrawler):
         logger.info(f"Initialized crawler for series: {self.series_name}")
 
     async def __aenter__(self):
-        """异步上下文管理器入口"""
+        """Async context manager entry"""
         await self.init_browser()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """异步上下文管理器退出"""
+        """Async context manager exit"""
         await self.close()
 
     async def init_browser(self):
-        """初始化浏览器"""
+        """Initialize Playwright browser"""
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(
             headless=True,
@@ -50,15 +50,20 @@ class EconomistCrawler(BaseCrawler):
         )
         self.page = await self.context.new_page()
 
-    async def _find_and_click_checkbox(self):
+    async def _find_and_click_checkbox(self, is_saved: bool = False) -> bool:
         """查找并点击 checkbox"""
+        if not self.page:
+            raise RuntimeError("Browser not initialized")
+
         screenshot_path = await self._take_screenshot()
         # 在图像中查找 checkbox
         checkbox_pos = self.image_processor.find_checkbox(screenshot_path)
         # 删除截图文件
-        if os.path.exists(screenshot_path):
+        if not is_saved and os.path.exists(screenshot_path):
+            # logger.info(f"Delete screenshot: {screenshot_path}")
             os.remove(screenshot_path)
-        # logger.debug(f"删除截图: {screenshot_path}")
+        else:
+            logger.info(f"Save screenshot: {screenshot_path}")
 
         if checkbox_pos:
             # 如果找到 checkbox，点击它
@@ -66,7 +71,7 @@ class EconomistCrawler(BaseCrawler):
             x += random.randint(-5, 5)
             y += random.randint(-5, 5)
             await self.page.mouse.click(x, y)
-            logger.info(f"点击 ({x}, {y})")
+            logger.info(f"Click Cloudflare checkbox ({x}, {y})")
             await self.delay(1, 3)
             return True
         else:
@@ -74,9 +79,12 @@ class EconomistCrawler(BaseCrawler):
             return False
 
     async def _take_screenshot(self, save_dir: Path = settings.TMP_DIR / "screenshot"):
-        """截取指定区域的屏幕截图"""
+        """Get full page screenshot"""
         # 创建保存目录
-        save_dir.mkdirs(exist_ok=True)
+        if not self.page:
+            raise RuntimeError("Browser not initialized")
+
+        save_dir.mkdir(exist_ok=True, parents=True)
         now = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         screenshot_path = save_dir / f"{now}_{random.randint(1, 50):02d}_full.png"
 
@@ -84,13 +92,18 @@ class EconomistCrawler(BaseCrawler):
         await self.page.screenshot(path=screenshot_path)
         return screenshot_path
 
-    async def get(self, url, max_wait_time=30, loaded_selector=None, is_raw=False):
-        """安全访问页面，处理 Cloudflare 验证等情况"""
-        logger.info(f"访问页面: {url}")
+    async def get(
+        self, url, max_wait_time=settings.MAX_WAIT_TIME, loaded_selector=None
+    ):
+        """Get page safely, handling Cloudflare verification and other issues"""
+
+        if not self.page:
+            raise RuntimeError("Browser not initialized")
+
+        logger.info(f"Get page: {url}")
         await self.page.goto(url)
         start_time = time.time()
         while time.time() - start_time < max_wait_time:
-            # 检查页面标题
             try:
                 if "Just a moment" in await self.page.title():
                     # await self.delay(5, 10)
@@ -100,27 +113,20 @@ class EconomistCrawler(BaseCrawler):
                     else:
                         await self.delay(5, 10)
 
-                # 检查页面是否加载完成
                 if loaded_selector is not None:
                     loaded_element = await self.page.query_selector(loaded_selector)
                     if loaded_element:
-                        if not is_raw:
-                            content = await self.page.content()
-                            return BeautifulSoup(content, "html.parser")
-                        else:
-                            return self.page
-                else:
-                    if not is_raw:
                         content = await self.page.content()
                         return BeautifulSoup(content, "html.parser")
-                    else:
-                        return self.page
-            except:
-                pass
+                else:
+                    content = await self.page.content()
+                    return BeautifulSoup(content, "html.parser")
+            except Exception as e:
+                logger.error(f"Error occurred while getting page content: {e}")
             # 随机延迟后继续检测
             await self.delay(1, 2)
         # 超时抛出异常
-        raise TimeoutError(f"页面加载超时 ({max_wait_time}秒)")
+        raise TimeoutError(f"Timeout for {max_wait_time}s to load {url}")
 
     async def get_books(self, page: int = 1) -> List[dict]:
         url = self.base_url.format(page)
@@ -146,30 +152,30 @@ class EconomistCrawler(BaseCrawler):
                 else None
             )
 
-            # 下载封面图片
-            if cover_link:
-                try:
-                    await self.image_downloader.download_image(cover_link, title)
-                except Exception as e:
-                    logger.error(f"下载封面图片失败: {e}")
-
             book_dict = {
                 "title": title,
                 "date": date,
                 "series": self.series_name,
                 "detail_link": detail_link,
-                "cover_link": cover_link,  # 原始链接
+                "cover_link": cover_link,
             }
 
             book_dicts.append(book_dict)
-        logger.info(f"找到 {len(book_dicts)} 期杂志")
+        logger.info(f"Found {len(book_dicts)} issues on page {page}")
         return book_dicts
 
     async def get_book(self, book_dict: dict) -> dict:
-        logger.info(f"正在获取书籍详情: {book_dict['title']}")
+        logger.info(f"Getting book details: {book_dict['title']}")
         soup = await self.get(book_dict["detail_link"], loaded_selector="div#page")
+        if not soup:
+            logger.error("Failed to load book detail page")
+            return {}
 
         download_page_element = soup.find("div", class_="vk-att-item")
+        if not download_page_element or not download_page_element.find("a"):
+            logger.error(f"Failed to find download page link for {book_dict['title']}")
+            return book_dict
+
         download_page_link = download_page_element.find("a")["href"]
         download_url = f"https://magazinelib.com{download_page_link}"
 
@@ -177,16 +183,16 @@ class EconomistCrawler(BaseCrawler):
 
         download_input = soup.find("input", {"name": "url"})
         if not download_input:
-            logger.error("未找到下载链接")
+            logger.error("Failed to find download link")
             return book_dict
 
         download_link = download_input["value"]
-        logger.info(f"找到下载链接: {download_link}")
+        logger.info(f"Found download link: {download_link}")
         book_dict["download_link"] = download_link
         return book_dict
 
     async def close(self):
-        """关闭浏览器和 Playwright"""
+        """Close browser and Playwright"""
         if self.page:
             await self.page.close()
         if self.context:
@@ -195,4 +201,4 @@ class EconomistCrawler(BaseCrawler):
             await self.browser.close()
         if self.playwright:
             await self.playwright.stop()
-        logger.info("关闭浏览器")
+        logger.info("Browser closed")

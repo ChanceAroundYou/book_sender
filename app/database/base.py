@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import UTC, datetime
-from typing import Generic, List, Literal, Type, TypeVar, overload
+from typing import Generic, List, Literal, TypeVar, cast, overload
 
 from sqlalchemy import Column, DateTime, Integer, create_engine
 from sqlalchemy.orm import Session, declarative_base, object_session, sessionmaker
@@ -47,6 +47,8 @@ class BaseModel(Base):
 
 
 class ModelMixin(Generic[T], DictMixin):
+    id: Column[int | str]
+
     @property
     def db(self) -> Session:
         return object_session(self)
@@ -103,6 +105,7 @@ class ModelMixin(Generic[T], DictMixin):
             elif operator == "not like":
                 query = query.filter(getattr(cls, key).notlike(f"%{val}%"))
             elif operator == "between":
+                assert isinstance(val, (list, tuple)) and len(val) == 2
                 query = query.filter(getattr(cls, key).between(val[0], val[1]))
             elif operator == "is null":
                 query = query.filter(getattr(cls, key).is_(None))
@@ -117,17 +120,24 @@ class ModelMixin(Generic[T], DictMixin):
             else getattr(cls, order_by).asc()
         ).offset(skip)
         if first:
-            return query.limit(1).first()
+            if result := query.limit(1).first():
+                return cast(T, result)
+            return None
         if limit:
             query = query.limit(limit)
-        return query.all()
+        if result := query.all():
+            return cast(List[T], result)
+        return None
 
     @classmethod
-    def get_by_id(cls: Type[T], db: Session, id: int | str) -> T | None:
-        return db.query(cls).filter(cls.id == id).first()
+    def get_by_id(cls, db: Session, id: int | str) -> T | None:
+        result = db.get(cls, id)
+        if result is not None:
+            return cast(T, result)
+        return None
 
     @classmethod
-    def create(cls: Type[T], db: Session, ignore_id: bool = True, **kwargs) -> T:
+    def create(cls, db: Session, ignore_id: bool = True, **kwargs) -> T:
         kwargs = {
             k: v
             for k, v in kwargs.items()
@@ -140,7 +150,7 @@ class ModelMixin(Generic[T], DictMixin):
         db.add(obj)
         db.commit()
         db.refresh(obj)
-        return obj
+        return cast(T, obj)
 
     def update(self, **kwargs):
         for key, value in kwargs.items():

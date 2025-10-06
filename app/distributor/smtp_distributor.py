@@ -47,7 +47,7 @@ class SMTPDistributor(BaseDistributor):
 
             except smtplib.SMTPAuthenticationError as e:
                 logger.error(f"SMTP认证失败: {str(e)}")
-                raise
+                raise RuntimeError("SMTP认证失败，请检查用户名和密码") from e
 
             except (smtplib.SMTPServerDisconnected, ConnectionError) as e:
                 retry_count += 1
@@ -55,15 +55,16 @@ class SMTPDistributor(BaseDistributor):
                     logger.warning(f"连接断开，正在重试 ({retry_count}/{max_retries}): {str(e)}")
                     continue
                 logger.error(f"重试{max_retries}次后仍然失败")
-                raise
+                raise ConnectionError("无法连接到SMTP服务器，请检查网络连接") from e
 
             except smtplib.SMTPException as e:
                 logger.error(f"SMTP错误: {str(e)}")
-                raise
+                raise RuntimeError(f"SMTP错误: {str(e)}") from e
 
             except Exception as e:
                 logger.error(f"发送邮件时发生未知错误: {str(e)}")
-                raise
+                raise RuntimeError("发送邮件时发生未知错误") from e
+        return False
 
     async def send_book(self, 
                        book_dict: dict, 

@@ -4,13 +4,13 @@ from app.uploader.base import BaseUploader
 from app.uploader.r2 import R2Uploader
 from app.uploader.s3 import S3Uploader
 
-@overload
-def create_uploader(uploader_type: Literal['r2'], *args, **kwargs) -> R2Uploader:
-    ...
+# @overload
+# def create_uploader(uploader_type: Literal['r2'], *args, **kwargs) -> R2Uploader:
+#     ...
 
-@overload
-def create_uploader(uploader_type: Literal['s3'], *args, **kwargs) -> S3Uploader:
-    ...
+# @overload
+# def create_uploader(uploader_type: Literal['s3'], *args, **kwargs) -> S3Uploader:
+#     ...
 
 def create_uploader(uploader_type: str, *args, **kwargs) -> BaseUploader:
     """创建上传器实例

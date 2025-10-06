@@ -1,7 +1,7 @@
+from pathlib import Path
 import cv2
 import numpy as np
 import logging
-import os
 from typing import Optional, Tuple
 from ..config import settings
 
@@ -10,81 +10,85 @@ logger = logging.getLogger(__name__)
 class ImageProcessor:
     def __init__(self, debug: bool = False):
         """
-        初始化图像处理器
-        :param debug_mode: 是否保存调试图像
+        Initialize ImageProcessor
+        :param debug: If True, save debug images to temporary directory
         """
         self.debug = debug
-        self.debug_dir = settings.TMP_DIR / "debug_images"
-        self.debug_dir.mkdir(exist_ok=True, parents=True)
 
-    def _save_debug_image(self, image: np.ndarray, name: str, image_path: str):
+    def _save_debug_image(self, image: np.ndarray, mark: str, image_path: Path):
         """
-        保存调试图像
-        :param image: 要保存的图像
-        :param name: 图像名称
-        :param image_path: 原始图像路径
+        Save debug image to temporary directory
+        :param image: The image to save
+        :param mark: Image name
+        :param image_path: Original image path
         """
         if not self.debug:
             return
             
-        # 从原始图像路径中提取文件名（不含扩展名）
-        base_name = os.path.splitext(os.path.basename(image_path))[0]
-        # 构建调试图像保存路径
-        debug_path = self.debug_dir / f"{base_name}_{name}.png"
-        cv2.imwrite(debug_path, image)
+        debug_dir = settings.TMP_DIR / "debug_images"
+        debug_dir.mkdir(exist_ok=True, parents=True)
+        debug_path = debug_dir / f"{image_path.stem}_{mark}.png"
+        cv2.imwrite(str(debug_path), image)
         logger.debug(f"保存调试图像: {debug_path}")
 
-    def find_checkbox(self, image_path: str) -> Optional[Tuple[int, int]]:
+    def find_checkbox(self, image_path: str | Path) -> Optional[Tuple[int, int]]:
         """
-        在图像中查找 checkbox
-        :param image_path: 图像文件路径
-        :return: 如果找到 checkbox，返回其中心点坐标 (x, y)；否则返回 None
+        Find checkbox in the image and return its center coordinates
+
+        :param image_path: Image file path
+        :return: If checkbox is found, return its center coordinates (x, y); otherwise return None
         """
-        # 读取图像
-        img = cv2.imread(image_path)
+        # Read image
+        if isinstance(image_path, str):
+            image_path = Path(image_path)
+        if not image_path.exists():
+            logger.error(f"Image file does not exist: {image_path}")
+            return None
+        
+        img = cv2.imread(str(image_path))
         if img is None:
-            logger.error(f"无法读取图像: {image_path}")
+            logger.error(f"Cannot read image: {image_path}")
             return None
 
-        # 转换为灰度图
+        # Convert to grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # 使用自适应阈值处理
+        # Apply adaptive thresholding
         binary = cv2.adaptiveThreshold(
             gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
             cv2.THRESH_BINARY_INV, 11, 2
         )
         self._save_debug_image(binary, "binary", image_path)
-        
-        # 查找轮廓
+
+        # Find contours
         contours, _ = cv2.findContours(
             binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
 
         contours = [cnt for cnt in contours if cv2.contourArea(cnt) >= 1000]
         if not contours:
-            logger.debug("未找到外框")
+            logger.debug("No outer contour found")
             return None
         
         contour = contours[0]
         area = cv2.contourArea(contour)
         x, y, w, h = cv2.boundingRect(contour)
 
-        # 创建轮廓可视化图像
+        # Build image with outer contour
         inner_contour_img = img.copy()
         cv2.drawContours(inner_contour_img, [contour], -1, (0, 255, 0), 2)
         self._save_debug_image(inner_contour_img, "contours", image_path)
 
-        # 提取ROI区域
+        # Extract ROI
         roi = binary[y:y+h, x:x+w]
         roi_img = img[y:y+h, x:x+w].copy()
 
-        # 在ROI中查找内部轮廓
+        # Find inner contours in ROI
         inner_contours, _ = cv2.findContours(
             roi, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
         )
         inner_contours = [cnt for cnt in inner_contours if area * 0.8 > cv2.contourArea(cnt) > 400]
         if not inner_contours:
-            logger.debug("未找到checkbox内框")
+            logger.debug("No inner contour found for checkbox")
             return None
         
         inner_contour = inner_contours[0]
@@ -97,8 +101,8 @@ class ImageProcessor:
 
         center_x = x + inner_x + inner_w // 2
         center_y = y + inner_y + inner_h // 2
-                        
-                # 在图像上标记找到的 checkbox
+
+        # Mark the found checkbox on the image
         result_img = img.copy()
         cv2.rectangle(result_img, (x, y), (x+w, y+h), (0, 255, 0), 2)
         cv2.rectangle(result_img, 
@@ -107,6 +111,6 @@ class ImageProcessor:
                             (255, 0, 0), 2)
         cv2.circle(result_img, (center_x, center_y), 3, (0, 0, 255), -1)
         self._save_debug_image(result_img, "result", image_path)
-                        
-        logger.debug(f"找到 checkbox，位置: ({center_x}, {center_y})")
+
+        logger.debug(f"Found checkbox at: ({center_x}, {center_y})")
         return center_x, center_y

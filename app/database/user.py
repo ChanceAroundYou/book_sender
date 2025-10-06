@@ -27,8 +27,8 @@ class User(BaseModel, ModelMixin["User"]):
         "Book", secondary="user_books", viewonly=True, back_populates="users"
     )
 
-    def to_dict(self):
-        d = super().to_dict()
+    def to_dict(self, obj=None, exclude=None, max_depth=None) -> dict:
+        d = super().to_dict(obj=obj, exclude=exclude, max_depth=max_depth)
         d["books"] = [
             {
                 "id": ub.book.id,
@@ -55,7 +55,7 @@ class User(BaseModel, ModelMixin["User"]):
             return
 
         for subscription in self.subscriptions:
-            if subscription["series"] == series:
+            if str(subscription["series"]) == series:
                 return subscription
         return None
 

@@ -195,12 +195,6 @@ POSTGRES_PORT=5432
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
-# 安全配置
-SECRET_KEY=your_secret_key
-
-# 存储配置
-DB_DIR=app/db
-
 # 其他配置
 ACCESS_TOKEN_EXPIRE_MINUTES=11520
 ```

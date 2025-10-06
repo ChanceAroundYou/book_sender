@@ -79,6 +79,7 @@ services:
     volumes:
       - ../app:/app/app
       - ../downloads:${DOWNLOAD_DIR}
+      - ../tmp:/app/tmp
     env_file:
       - ../.env
     container_name: celery_worker

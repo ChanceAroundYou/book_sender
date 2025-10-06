@@ -125,6 +125,7 @@ class Settings(BaseSettings):
     # 爬虫配置
     CRAWLER_DELAY: int = 3  # 爬虫延迟（秒）
     MAX_RETRIES: int = 3  # 最大重试次数
+    MAX_WAIT_TIME: int = 180  # 最大等待时间（秒）
 
     # 分发器配置
     MAX_DOWNLOAD_CONCURRENT: int = 5  # 最大并发下载数
@@ -138,10 +139,8 @@ class Settings(BaseSettings):
     UPLOADER_TYPE: str = "r2"
 
     # Celery configuration
-    CELERY_WORKER_CONCURRENCY: int = os.getenv("CELERY_WORKER_CONCURRENCY", 4)
-    CELERY_WORKER_PREFETCH_MULTIPLIER: int = os.getenv(
-        "CELERY_WORKER_PREFETCH_MULTIPLIER", 4
-    )
+    CELERY_WORKER_CONCURRENCY: int = int(os.getenv("CELERY_WORKER_CONCURRENCY", 4))
+    CELERY_WORKER_PREFETCH_MULTIPLIER: int = int(os.getenv("CELERY_WORKER_PREFETCH_MULTIPLIER", 4))
 
     @property
     def CELERY_BROKER_URL(self) -> str:

@@ -1,40 +1,43 @@
 import psycopg2
+from config import settings
 from psycopg2 import Error
 
 # 数据库连接参数
 db_params = {
-    'host': '192.168.1.6',
-    'port': '25432',
-    'database': 'postgres',
-    'password': 'postgres',
-    'user': 'postgres'
+    "connection_factory": None,
+    "cursor_factory": None,
+    "host": settings.POSTGRES_HOST,
+    "port": settings.POSTGRES_PORT,
+    "database": settings.POSTGRES_DB,
+    "password": settings.POSTGRES_PASSWORD,
+    "user": settings.POSTGRES_USER,
 }
 
 try:
-    # 建立数据库连接
+    # Build the connection
     conn = psycopg2.connect(**db_params)
-    
-    # 创建游标对象
+    # Create a cursor object
     cursor = conn.cursor()
-    
-    # SQL语句：重命名列
+
+    # SQL statement: rename column
+    # This operation renames the category column in the books table to series.
+    # Prerequisites: The books table must exist, and the category column must also exist, otherwise an error will be reported.
     alter_query = "ALTER TABLE books RENAME COLUMN category TO series;"
-    
-    # 执行SQL语句
+
+    # Execute SQL statement
     cursor.execute(alter_query)
-    
-    # 提交更改
+
+    # Commit changes
     conn.commit()
-    
-    print("列名修改成功：category -> series")
+    print("Column name changed successfully: category -> series")
 
 except (Exception, Error) as error:
-    print("数据库操作出错:", error)
+    print("Database operation error:", error)
 
 finally:
-    # 关闭数据库连接
-    if 'conn' in locals():
-        if cursor:
+    # Close database connection
+    if "conn" in locals() and (conn := locals()["conn"]):
+        if "cursor" in locals() and (cursor := locals()["cursor"]):
             cursor.close()
         conn.close()
-        print("数据库连接已关闭")
+        print("Database connection closed")

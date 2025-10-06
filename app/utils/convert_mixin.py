@@ -2,7 +2,7 @@ import json
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, Optional, Set
 from uuid import UUID
 
 
@@ -111,7 +111,7 @@ class ConvertMixin:
         max_depth: int,
         visited: Set[int],
         current_depth: int = 0
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any] | str:
         """递归转换字典及其嵌套值
         
         Args:
@@ -226,15 +226,16 @@ class DictMixin(ConvertMixin):
             if self.__dict__:
                 obj = self.__dict__
             else:
-                return None
+                return {}
 
-        return self._convert_dict(
+        result = self._convert_dict(
             obj,
             exclude or set(),
             max_depth,
             visited=set(),
             current_depth=0
         )
+        return result if isinstance(result, dict) else {}
     
 class InterableMixin(ConvertMixin):
     def to_iterable(
@@ -242,7 +243,7 @@ class InterableMixin(ConvertMixin):
         obj: Any=None,
         exclude: Optional[Set[str]] = None,
         max_depth: int = 5
-    ) -> List[Any]:
+    ) -> Iterable[Any]:
         """将对象转换为列表
         
         Args:
@@ -257,7 +258,7 @@ class InterableMixin(ConvertMixin):
             if hasattr(self, '__iter__'):
                 obj = self
             else:
-                return None
+                return []
 
         return self._convert_iterable(
             obj,

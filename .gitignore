@@ -1,6 +1,9 @@
 .python-version
 .env
 .env.development
+.env.production
+.env.testing
+.env.local
 downloads/
 __pycache__/
 celerybeat*

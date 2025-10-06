@@ -55,7 +55,7 @@ async def test_download_book(crawler: EconomistCrawler):
     """测试下载杂志"""
     # 设置临时下载目录
     download_dir = settings.TMP_DIR / "downloads"
-    download_dir.mkdirs(exist_ok=True)
+    download_dir.mkdir(exist_ok=True, parents=True)
 
     # 获取杂志列表和详情
     book_dicts = await crawler.get_books(page=1)
@@ -78,7 +78,7 @@ async def test_crawler_integration(crawler: EconomistCrawler):
     """测试爬虫完整流程"""
     # 设置临时下载目录
     download_dir = settings.TMP_DIR / "downloads"
-    download_dir.mkdirs(exist_ok=True)
+    download_dir.mkdir(exist_ok=True, parents=True)
 
     # 1. 获取杂志列表
     book_dicts = await crawler.get_books(page=1)

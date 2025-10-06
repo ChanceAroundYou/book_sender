@@ -34,10 +34,11 @@ def crawl_book_scheduler(self: BaseTask):
     # 查询新书籍逻辑
     def _task():
         with get_denpend_db() as db:
-            books = Book.query(
-                db, download_link={"operator": "is null"}
-            )
-            book_dicts = [book.to_dict() for book in books]
+            book_dicts = []
+            if books := Book.query(
+                db, download_link="", file_size=0
+            ):
+                book_dicts = [book.to_dict() for book in books]
 
         for book_dict in book_dicts:
             logger.info(f"开始爬取{book_dict['title']}详情")
@@ -51,10 +52,11 @@ def download_books_scheduler(self: BaseTask):
     # 查询未下载书籍逻辑
     def _task():
         with get_denpend_db() as db:
-            books = Book.query(
+            book_dicts = []
+            if books := Book.query(
                 db, file_size=0, download_link={"operator": "!=", "value": ""}
-            )
-            book_dicts = [book.to_dict() for book in books]
+            ):
+                book_dicts = [book.to_dict() for book in books]
 
         logger.info(f"开始下载书籍: {len(book_dicts)}本")
         for book_dict in book_dicts:
@@ -68,17 +70,17 @@ def download_books_scheduler(self: BaseTask):
 def distribute_books_scheduler(self: BaseTask):
     def _task():
         for series in SERIES_LIST:
-            send_tasks = {}
             with get_denpend_db() as db:
-                books = Book.query(
+                send_tasks = {}
+                if books := Book.query(
                     db, series=series, file_size={"operator": ">", "value": 0}
-                )
-                for book in books:
-                    for user_book in book.user_books:
-                        if user_book.status == UserBookStatus.DOWNLOADED:
-                            send_tasks.setdefault(user_book.user.email, []).append(
-                                book.to_dict()
-                            )
+                ):
+                    for book in books:
+                        for user_book in book.user_books:
+                            if user_book.status == UserBookStatus.DOWNLOADED:
+                                send_tasks.setdefault(user_book.user.email, []).append(
+                                    book.to_dict()
+                                )
 
             if not send_tasks:
                 logger.info(f"没有{series}书籍需要分发")
