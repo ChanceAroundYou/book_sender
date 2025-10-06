@@ -22,6 +22,11 @@ services:
     container_name: postgres
     networks:
       - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # 单日志文件最大100M
+        max-file: "3"     # 最多保留3个日志文件
 
   # Redis缓存
   redis:
@@ -40,9 +45,14 @@ services:
     container_name: redis
     networks:
       - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # 单日志文件最大100M
+        max-file: "3"     # 最多保留3个日志文件
 
   # FastAPI应用
-  web:
+  book_web:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -57,7 +67,7 @@ services:
       - ../.env
     ports:
       - "${WEB_PORT}:${WEB_PORT}"
-    container_name: web
+    container_name: book_web
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,9 +75,14 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # 单日志文件最大100M
+        max-file: "3"     # 最多保留3个日志文件
 
   # Celery Worker
-  celery_worker:
+  book_worker:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -82,14 +97,21 @@ services:
       - ../tmp:/app/tmp
     env_file:
       - ../.env
-    container_name: celery_worker
+    container_name: book_worker
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
-      web:
+      book_web:
         condition: service_started
     networks:
       - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # 单日志文件最大100M
+        max-file: "3"     # 最多保留3个日志文件
 
   # # Celery Beat
   # celery_beat:

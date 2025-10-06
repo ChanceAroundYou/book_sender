@@ -3,8 +3,8 @@ from typing import Literal, Type, overload
 from app.downloader.base import BaseDownloader
 from app.downloader.economist_downloader import FileDownloader
 
-# @overload
-# def create_downloader(downloader_type: Literal['file'], *args, **kwargs) -> FileDownloader:
+@overload
+def create_downloader(downloader_type: Literal['file'], *args, **kwargs) -> FileDownloader:
     ...
 
 def create_downloader(downloader_type: str, *args, **kwargs) -> BaseDownloader:

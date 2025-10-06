@@ -44,7 +44,7 @@ class Book(BaseModel, ModelMixin["Book"]):
         "User", secondary="user_books", viewonly=True, back_populates="books"
     )
 
-    def to_dict(self, obj=None, exclude=None, max_depth=None) -> Dict[str, Any]:
+    def to_dict(self, obj=None, exclude=None, max_depth=5) -> Dict[str, Any]:
         """实现接口方法：转换为字典"""
         base_dict = super().to_dict(obj=obj, exclude=exclude, max_depth=max_depth)
         base_dict["users"] = [

@@ -1,32 +1,39 @@
-FROM python:3.12-slim as builder
+FROM python:3.12-slim
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
+# 使用 sed 将 apt 源切换为清华源（兼容 deb822 与传统 sources.list），并校验后再安装
+RUN set -eux; \
+    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+    sed -ri \
+    -e 's@URIs:[[:space:]]*https?://deb\.debian\.org/debian@URIs: https://mirrors.tuna.tsinghua.edu.cn/debian@g' \
+    -e 's@URIs:[[:space:]]*https?://security\.debian\.org/debian-security@URIs: https://mirrors.tuna.tsinghua.edu.cn/debian-security@g' \
+    -e 's@URIs:[[:space:]]*https?://deb\.debian\.org/debian-security@URIs: https://mirrors.tuna.tsinghua.edu.cn/debian-security@g' \
+    /etc/apt/sources.list.d/debian.sources; \
+    fi; \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    software-properties-common \
     git \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# 设置工作目录
-WORKDIR /app
-
-# 复制依赖文件
-COPY requirements.txt .
-
-# 安装Python依赖
-RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
-
-# 安装playwright浏览器
-RUN playwright install chromium
-
-# 第二阶段：运行环境
-FROM python:3.12-slim
-
-# 安装运行时依赖
-RUN apt-get update && apt-get install -y \
+# 继续在同一阶段：安装运行时依赖（包含之前两个阶段的合集）
+RUN set -eux; \
+    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+    sed -ri \
+    -e 's@URIs:[[:space:]]*https?://deb\.debian\.org/debian@URIs: https://mirrors.tuna.tsinghua.edu.cn/debian@g' \
+    -e 's@URIs:[[:space:]]*https?://security\.debian\.org/debian-security@URIs: https://mirrors.tuna.tsinghua.edu.cn/debian-security@g' \
+    -e 's@URIs:[[:space:]]*https?://deb\.debian\.org/debian-security@URIs: https://mirrors.tuna.tsinghua.edu.cn/debian-security@g' \
+    /etc/apt/sources.list.d/debian.sources; \
+    fi; \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    libgl1 \
+    libglib2.0-0 \
     libnss3 \
     libnspr4 \
     libatk1.0-0 \
@@ -44,25 +51,24 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libatspi2.0-0 \
     libgtk-3-0 \
-    # OpenCV dependencies
-    libgl1-mesa-glx \
-    libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
 WORKDIR /app
 
-# 从builder阶段复制Python包
-COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
-COPY --from=builder /root/.cache/ms-playwright/ /root/.cache/ms-playwright/
+# 复制依赖文件并安装 Python 依赖
+COPY requirements.txt .
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
+
+# 加速 Playwright 浏览器下载（国内镜像）并安装 chromium
+ENV PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright
+RUN playwright install chromium
 
 # 复制应用代码
 COPY app/ app/
-COPY downloads/ downloads/
 
 # 设置环境变量
 ENV PYTHONPATH=/app
@@ -72,4 +78,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
 # 启动命令
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

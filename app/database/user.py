@@ -27,7 +27,7 @@ class User(BaseModel, ModelMixin["User"]):
         "Book", secondary="user_books", viewonly=True, back_populates="users"
     )
 
-    def to_dict(self, obj=None, exclude=None, max_depth=None) -> dict:
+    def to_dict(self, obj=None, exclude=None, max_depth=5) -> dict:
         d = super().to_dict(obj=obj, exclude=exclude, max_depth=max_depth)
         d["books"] = [
             {
