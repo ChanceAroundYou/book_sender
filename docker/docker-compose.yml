@@ -53,6 +53,7 @@ services:
 
   # FastAPI应用
   book_web:
+    image: book_sender:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -83,13 +84,8 @@ services:
 
   # Celery Worker
   book_worker:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    command: >
-      sh -c "echo 'Waiting for 10 seconds before starting celery worker...' &&
-             sleep 10 &&
-             celery -A app.celery_app.celery_app worker --beat --loglevel=info"
+    image: book_sender:latest
+    command: ["/usr/local/bin/worker-start.sh"]
     restart: always
     volumes:
       - ../app:/app/app
@@ -113,29 +109,6 @@ services:
         max-size: "10m"  # 单日志文件最大100M
         max-file: "3"     # 最多保留3个日志文件
 
-  # # Celery Beat
-  # celery_beat:
-  #   build:
-  #     context: ..
-  #     dockerfile: docker/Dockerfile
-  #   command: >
-  #     sh -c "echo 'Waiting for 15 seconds before starting celery beat...' &&
-  #            sleep 15 &&
-  #            celery -A app.celery_app.celery_app beat --loglevel=info"
-  #   restart: always
-  #   volumes:
-  #     - ../app:/app/app
-  #     - ../db:/app/db 
-  #   env_file:
-  #     - ../.env
-  #   container_name: celery_beat
-  #   depends_on:
-  #     web:
-  #       condition: service_started
-  #     redis:
-  #       condition: service_healthy
-  #   networks:
-  #     - app-network
 
 volumes:
   postgres_data:

@@ -69,6 +69,9 @@ RUN playwright install chromium
 
 # 复制应用代码
 COPY app/ app/
+# 复制启动脚本
+COPY docker/cmd/worker-start.sh /usr/local/bin/worker-start.sh
+RUN chmod +x /usr/local/bin/worker-start.sh
 
 # 设置环境变量
 ENV PYTHONPATH=/app

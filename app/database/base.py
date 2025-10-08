@@ -81,7 +81,7 @@ class ModelMixin(Generic[T], DictMixin):
 
             if isinstance(value, dict):
                 operator = value.get("operator", "=")
-                val = value.get("value")
+                val = value.get("value", None)
             else:
                 operator = "="
                 val = value
@@ -111,6 +111,14 @@ class ModelMixin(Generic[T], DictMixin):
                 query = query.filter(getattr(cls, key).is_(None))
             elif operator == "is not null":
                 query = query.filter(getattr(cls, key).isnot_(None))
+            elif operator == "is empty":
+                query = query.filter(
+                    (getattr(cls, key) == "") | (getattr(cls, key).is_(None))
+                )
+            elif operator == "is not empty":
+                query = query.filter(
+                    (getattr(cls, key) != "") & (getattr(cls, key).isnot(None))
+                )
             else:
                 query = query.filter(getattr(cls, key) == val)
 

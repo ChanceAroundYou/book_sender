@@ -58,7 +58,8 @@ def crawl_book_task(self: BaseTask, series: str, book_dict: dict):
             if not book:
                 logger.warning("Book not found in the database.")
                 return
-            elif str(book.download_link) != "":
+            elif book.download_link:
+                logger.info(f"Download link is {book.download_link}")
                 logger.info(f"Book {book.title} detail is already crawled.")
                 return
             book_dict = book.to_dict()
@@ -84,7 +85,7 @@ def download_book_task(self: BaseTask, book_dict: dict):
 
     async def _task(book_dict):
         download_link = book_dict.get("download_link", "")
-        if download_link == "":
+        if not download_link:
             logger.warning("Book download link is empty.")
             return
 
@@ -93,7 +94,7 @@ def download_book_task(self: BaseTask, book_dict: dict):
             if not book:
                 logger.warning("Book not found in the database.")
                 return
-            elif str(book.file_path) != "" and int(book.file_size) > 0:
+            elif not book.file_path and book.file_size > 0:
                 logger.info(f"Book {book.title} is already downloaded.")
                 return
             book_dict = book.to_dict()

@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
+from operator import sub
 from loguru import logger
 from sqlalchemy import JSON, Column, String
 from sqlalchemy.orm import relationship
 
+# from app.database import series
 from app.database.base import BaseModel, ModelMixin
 from app.database.series import BookSeries
 from app.database.user_book import UserBook, UserBookStatus
@@ -26,6 +28,12 @@ class User(BaseModel, ModelMixin["User"]):
     books = relationship(
         "Book", secondary="user_books", viewonly=True, back_populates="users"
     )
+    
+    @property
+    def subscribed_series(self):
+        if not self.subscriptions:
+            return []
+        return [s["series"] for s in self.subscriptions]
 
     def to_dict(self, obj=None, exclude=None, max_depth=5) -> dict:
         d = super().to_dict(obj=obj, exclude=exclude, max_depth=max_depth)
@@ -57,7 +65,7 @@ class User(BaseModel, ModelMixin["User"]):
         for subscription in self.subscriptions:
             if str(subscription["series"]) == series:
                 return subscription
-        return None
+        return
 
     def add_subscription(
         self,
@@ -66,15 +74,15 @@ class User(BaseModel, ModelMixin["User"]):
     ):
         from app.database.book import Book
 
+        if not BookSeries.check_series(series):
+            logger.warning(f"系列 {series} 不存在")
+            return
+
         if not subscribe_date:
             subscribe_date = datetime.now(UTC).strftime("%Y-%m-%d")
 
         subscription = self.get_subscription(series)
         if subscription and subscription["subscribe_date"] == subscribe_date:
-            return
-
-        if not BookSeries.check_series(series):
-            logger.warning(f"系列 {series} 不存在")
             return
 
         self.update(
@@ -84,30 +92,41 @@ class User(BaseModel, ModelMixin["User"]):
             ]
         )
         books = Book.query(self.db, series=series)
+        if not books:
+            return
+
         for book in books:
             self.add_book(book)
 
     def remove_subscription(self, series: str):
-        from app.database.book import Book
-
-        subscription = self.get_subscription(series)
-        if not subscription:
+        if not self.get_subscription(series):
             return
 
-        user_books = UserBook.query(
-            self.db,
-            user_id=self.id,
-            book_id={
-                "operator": "in",
-                "value": [book.id for book in Book.query(self.db, series=series)],
-            },
-        )
-        for user_book in user_books:
+        for user_book in self.user_books:
+            if user_book.book.series != series:
+                continue
             user_book.delete()
 
         self.update(
             subscriptions=[s for s in self.subscriptions if s["series"] != series]
         )
+
+    def check_subscriptions(self):
+        from app.database.book import Book
+        
+        # 删除不再订阅的书籍
+        for user_book in self.user_books:
+            if user_book.book.series not in self.subscribed_series:
+                user_book.delete()
+        
+        # 添加新订阅的书籍
+        for series in self.subscribed_series:
+            books = Book.query(self.db, series=series)
+            if not books:
+                continue
+            for book in books:
+                if self.add_book(book):
+                    logger.info(f"为用户 {self.email} 添加书籍 {book.title} ({book.series})")
 
     def add_book(self, book):
         if book in self.books:
@@ -140,26 +159,10 @@ class User(BaseModel, ModelMixin["User"]):
         if user_book:
             user_book.delete()
             self.update()
-            
-    # def favorite_book(self, book):
-    #     user_book = UserBook.query(
-    #         self.db, first=True, user_id=self.id, book_id=book.id
-    #     )
-    #     if user_book:
-    #         user_book.favorited()
-    #     else:
-    #         self.add_book(book, favorite=True)
-
-    # def unfavorite_book(self, book):
-    #     user_book = UserBook.query(
-    #         self.db, first=True, user_id=self.id, book_id=book.id
-    #     )
-    #     if user_book:
-    #         user_book.unfavorited()
+            return user_book
+        return None
 
     def delete(self):
-        user_books = UserBook.query(self.db, user_id=self.id)
-        for user_book in user_books:
+        for user_book in self.user_books:
             user_book.delete()
-
         super().delete()
