@@ -2,7 +2,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import logging
-from typing import Optional, Tuple
+from typing import Tuple
 from ..config import settings
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class ImageProcessor:
         cv2.imwrite(str(debug_path), image)
         logger.debug(f"保存调试图像: {debug_path}")
 
-    def find_checkbox(self, image_path: str | Path) -> Optional[Tuple[int, int]]:
+    def find_checkbox(self, image_path: str | Path) -> Tuple[int, int] | None:
         """
         Find checkbox in the image and return its center coordinates
 

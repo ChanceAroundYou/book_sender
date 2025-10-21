@@ -1,6 +1,5 @@
 import os
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from urllib.parse import quote
 
 import boto3
@@ -69,7 +68,7 @@ class S3Uploader(BaseUploader):
             else:
                 raise
     
-    def upload_file(self, file_path: str, key: Optional[str] = None) -> str:
+    def upload_file(self, file_path: str, key: str | None = None) -> str:
         """上传文件到
         
         Args:
@@ -168,7 +167,7 @@ class S3Uploader(BaseUploader):
                 raise FileNotFoundError(f"文件不存在: {key}")
             raise
     
-    def list_files(self, prefix: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_files(self, prefix: str | None = None) -> List[Dict[str, Any]]:
         """列出文件
         
         Args:

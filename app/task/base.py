@@ -1,4 +1,5 @@
 import asyncio
+from functools import wraps
 from typing import Any, Dict
 
 from celery import Task as CeleryTask
@@ -41,10 +42,6 @@ class BaseTask(CeleryTask):
             if task:
                 task.retry()
 
-    def async_run_with_retry(self, func, *args, **kwargs):
-        """异步运行任务，并重试"""
-        return self.run_with_retry(lambda: asyncio.run(func(*args, **kwargs)))
-
     def run_with_retry(self, func, *args, **kwargs):
         """同步运行任务，并重试"""
         try:
@@ -61,3 +58,24 @@ class BaseTask(CeleryTask):
             else:
                 logger.error(f"重试失败，已重试{max_retries}次: {str(e)}")
                 raise e
+
+    @staticmethod
+    def retry_decorator(is_async: bool = False):
+        """装饰器：将带有 self 参数的任务函数包装为通过 self.run_with_retry 调用。
+
+        用法示例：
+        @celery_app.task(bind=True, base=BaseTask)
+        @BaseTask.retry_decorator(is_async=False)
+        def crawl_books_scheduler(...):
+            ...
+        """
+        def func_wrapper(func):
+            
+            @wraps(func)
+            def wrapper(self, *args, **kwargs):
+                if is_async:
+                    return self.run_with_retry(lambda: asyncio.run(func(*args, **kwargs)))
+                return self.run_with_retry(func, *args, **kwargs)
+
+            return wrapper
+        return func_wrapper

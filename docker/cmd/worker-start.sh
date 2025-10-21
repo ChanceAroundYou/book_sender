@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -e
 
-echo "Waiting for 10 seconds before starting celery services..."
-sleep 10
+# echo "Waiting for 10 seconds before starting celery services..."
+# sleep 10
 
 echo "Starting celery beat in background..."
 celery -A app.celery_app.celery_app beat --loglevel=info --pidfile=/tmp/celerybeat.pid &

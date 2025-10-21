@@ -51,7 +51,7 @@ def generate_random_username(email: str, db: Session) -> str:
     username = base
     # 如果用户名已存在，添加随机数字直到找到可用的用户名
     counter = 1
-    while User.query(db, first=True, username=username):
+    while User.query_first(db, username=username):
         username = f"{base}{counter}"
         counter += 1
 
@@ -92,14 +92,13 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if not email:
+        if not (email := payload.get("sub")):
             raise credentials_exception
 
     except JWTError:
         raise credentials_exception
 
-    user = User.query(db, first=True, email=email)
+    user = User.query_first(db, email=email)
     if not user:
         raise credentials_exception
     return user
@@ -109,7 +108,7 @@ async def get_current_user(
 async def register(user: UserCreate, db: Session = Depends(get_depend_db)):
     """用户注册"""
     # 检查邮箱是否已存在
-    if User.query(db, first=True, email=user.email):
+    if User.query_first(db, email=user.email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="该邮箱已被注册"
         )
@@ -132,7 +131,7 @@ async def login(
 ):
     """用户登录"""
     # 通过邮箱查找用户
-    user = User.query(db, first=True, email=user_login.email)
+    user = User.query_first(db, email=user_login.email)
     if not user or not verify_password(user_login.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -266,8 +265,7 @@ async def remove_user_subscription_api(
 @router.post("/forgot-password", response_model=dict)
 async def forgot_password(email: str, db: Session = Depends(get_depend_db)):
     """忘记密码"""
-    user = User.query(db, first=True, email=email)
-    if not user:
+    if not User.query_first(db, email=email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="该邮箱未注册"
         )

@@ -31,8 +31,7 @@ async def crawl_book_api(
     try:
         params = await get_request_params(request)
         params.pop("series", None)
-        book = Book.query(db, first=True, **params)
-        if not book:
+        if not (book := Book.query_first(db, **params)):
             raise HTTPException(status_code=404, detail="Book not found")
         crawl_book_task.delay(series, book.to_dict())
         return {"message": "Book crawl task start."}

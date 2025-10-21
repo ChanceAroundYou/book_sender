@@ -52,24 +52,21 @@ async def get_all_books_api(request: Request, db: Session = Depends(get_depend_d
         if i < skip:
             continue
         if series != BookSeries.OTHER:
-            book = Book.query(
-                db, series=series, order_by="date", order_desc=True, first=True
-            )
-            if book:
+            if book := Book.query_first(db, series=series, order_by="date", order_desc=True):
                 book_dict = book.to_dict()
                 book_dict["title"] = series
                 result_book_dicts.append(book_dict)
 
-    books = Book.query(
+    if books := Book.query(
         db,
         series=BookSeries.OTHER,
         order_by=order_by,
         order_desc=order_desc,
         skip=max(skip - len(result_book_dicts), 0),
         limit=limit - len(result_book_dicts),
-    )
-    result_book_dicts.extend([book.to_dict() for book in books])
-    result_book_dicts.sort(key=lambda x: x[order_by], reverse=order_desc)
+    ):
+        result_book_dicts.extend([book.to_dict() for book in books])
+        result_book_dicts.sort(key=lambda x: x[order_by], reverse=order_desc)
     return result_book_dicts
 
 
@@ -77,8 +74,7 @@ async def get_all_books_api(request: Request, db: Session = Depends(get_depend_d
 async def get_book_api(request: Request, db: Session = Depends(get_depend_db)):
     """获取单本图书详情"""
     params = await get_request_params(request)
-    book = Book.query(db, first=True, **params)
-    if not book:
+    if not (book := Book.query_first(db, **params)):
         raise HTTPException(status_code=404, detail="Book not found")
     return book.to_dict()
 
@@ -111,8 +107,7 @@ async def update_book_api(request: Request, db: Session = Depends(get_depend_db)
 async def delete_book_api(request: Request, db: Session = Depends(get_depend_db)):
     """删除图书"""
     params = await get_request_params(request)
-    book = Book.query(db, first=True, **params)
-    if not book:
+    if not (book := Book.query_first(db, **params)):
         raise HTTPException(status_code=404, detail="Book not found")
     book.delete()
     return {"message": "Book deleted successfully"}

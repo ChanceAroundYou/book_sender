@@ -1,7 +1,5 @@
 import hashlib
 import re
-from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -56,7 +54,7 @@ class ImageDownloader:
 
         return f"{clean_title}_{url_hash}"
 
-    async def download_image(self, url: str, title: str) -> Optional[str]:
+    async def download_image(self, url: str, title: str) -> str | None:
         """下载图片并返回保存路径"""
         if not url:
             logger.warning("图片URL为空")

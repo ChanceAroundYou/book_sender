@@ -36,8 +36,7 @@ async def download_book_api(
     """创建下载任务"""
     try:
         params = await get_request_params(request)
-        book = Book.query(db, first=True, **params)
-        if not book:
+        if not (book := Book.query_first(db, **params)):
             raise HTTPException(status_code=404, detail="Book not found")
         download_book_task.delay(book.to_dict())
         return {"message": f"Book {book.title} download task start."}

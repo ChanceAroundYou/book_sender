@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
+from loguru import logger
 from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import Session, relationship
 
@@ -17,6 +18,19 @@ class BookFormat:
     EPUB = "epub"
     MOBI = "mobi"
     TXT = "txt"
+    
+    @classmethod
+    def get_format(cls, file_name: str) -> str | None:
+        """检查格式是否有效"""
+        if '.pdf' in file_name:
+            return cls.PDF
+        elif '.epub' in file_name:
+            return cls.EPUB
+        elif '.mobi' in file_name:
+            return cls.MOBI
+        elif '.txt' in file_name:
+            return cls.TXT
+        return None
 
 
 class Book(BaseModel, ModelMixin["Book"]):
@@ -85,11 +99,10 @@ class Book(BaseModel, ModelMixin["Book"]):
                 else UserBookStatus.DISTRIBUTED
             )
 
-            user_book = UserBook.query(db, user_id=user.id, book_id=book.id, first=True)
-            if not user_book:
-                UserBook.create(db, user_id=user.id, book_id=book.id, status=status)
-            else:
+            if user_book := UserBook.query_first(db, user_id=user.id, book_id=book.id):
                 user_book.update(status=status)
+            else:
+                UserBook.create(db, user_id=user.id, book_id=book.id, status=status)
 
         return book
 
@@ -100,22 +113,22 @@ class Book(BaseModel, ModelMixin["Book"]):
 
     def downloaded(self, file_path: str, file_size: int, file_format: str) -> None:
         """实现接口方法：更新下载状态"""
-        user_books = UserBook.query(self.db, book_id=self.id)
-        if not user_books:
-            return
-
-        for user_book in user_books:
-            user_book.downloaded()
-
+        logger.info(
+            f"下载后更新书籍{self.title}信息: size={file_size}, path={file_path}, format={file_format}"
+        )
         self.update(
             file_path=file_path,
             file_size=file_size,
             file_format=file_format,
             downloaded_at=datetime.now(UTC),
         )
+        
+        if user_books := UserBook.query(self.db, book_id=self.id):
+            for user_book in user_books:
+                user_book.downloaded()
 
     def distributed(
-        self, user_id: Optional[int] = None, email: Optional[str] = None
+        self, user_id: int | None = None, email: str | None = None
     ) -> None:
         """实现接口方法：更新分发状态"""
         if not (user_id or email):

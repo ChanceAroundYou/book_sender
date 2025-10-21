@@ -2,7 +2,7 @@ import json
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, Iterable, Optional, Set
+from typing import Any, Dict, Iterable, Set
 from uuid import UUID
 
 
@@ -210,7 +210,7 @@ class DictMixin(ConvertMixin):
     def to_dict(
         self,
         obj: Any=None,
-        exclude: Optional[Set[str]] = None,
+        exclude: Set[str] | None = None,
         max_depth: int = 5
     ) -> Dict[str, Any]:
         """将对象转换为字典
@@ -241,7 +241,7 @@ class InterableMixin(ConvertMixin):
     def to_iterable(
         self,
         obj: Any=None,
-        exclude: Optional[Set[str]] = None,
+        exclude: Set[str] | None = None,
         max_depth: int = 5
     ) -> Iterable[Any]:
         """将对象转换为列表
@@ -272,7 +272,7 @@ class JsonMixin(DictMixin, InterableMixin):
     def to_json(
         self,
         obj: Any=None,
-        exclude: Optional[Set[str]] = None,
+        exclude: Set[str] | None = None,
         max_depth: int = 5
     ) -> str:
         """将对象转换为JSON字符串
@@ -294,12 +294,14 @@ class JsonMixin(DictMixin, InterableMixin):
             
         return json.dumps(data)
 
-
-def to_dict(obj, exclude: Optional[Set[str]] = None, max_depth: int = 5) -> Dict[str, Any]:
+def to_dict(obj, exclude: Set[str] | None = None, max_depth: int = 5) -> Dict[str, Any]:
     return DictMixin().to_dict(obj, exclude, max_depth)
 
-def to_iterable(obj, exclude: Optional[Set[str]] = None, max_depth: int = 5) -> Iterable[Any]:
+def to_dict(obj, exclude: Set[str] | None = None, max_depth: int = 5) -> Dict[str, Any]:
+    return DictMixin().to_dict(obj, exclude, max_depth)
+
+def to_iterable(obj, exclude: Set[str] | None = None, max_depth: int = 5) -> Iterable[Any]:
     return InterableMixin().to_iterable(obj, exclude, max_depth)
 
-def to_json(obj, exclude: Optional[Set[str]] = None, max_depth: int = 5) -> str:
+def to_json(obj, exclude: Set[str] | None = None, max_depth: int = 5) -> str:
     return JsonMixin().to_json(obj, exclude, max_depth)

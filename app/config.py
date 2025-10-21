@@ -1,7 +1,6 @@
 # 加载环境变量
 import os
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -9,7 +8,7 @@ from pydantic_settings import BaseSettings
 
 ROOT_DIR = Path(__file__).parent.parent
 
-def load_env_file(env_file: Optional[str] = None) -> None:
+def load_env_file(env_file: str | None = None) -> None:
     """加载环境变量文件
 
     Args:

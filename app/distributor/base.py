@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from loguru import logger
 
@@ -63,8 +63,8 @@ class BaseDistributor(ABC):
     async def send_book(self, 
                        book_dict: dict, 
                        email: str,
-                       subject: Optional[str] = None,
-                       message: Optional[str] = None) -> bool:
+                       subject: str | None = None,
+                       message: str | None = None) -> bool:
         """
         分发单本书籍
         
@@ -82,8 +82,8 @@ class BaseDistributor(ABC):
     async def send_books(self, 
                         book_dicts: List[dict], 
                         email: str,
-                        subject: Optional[str] = None,
-                        message: Optional[str] = None) -> bool:
+                        subject: str | None = None,
+                        message: str | None = None) -> bool:
         """
         批量分发多本书籍
         
@@ -133,8 +133,8 @@ class BaseDistributor(ABC):
     async def create_book_email(self, 
                          book_dict: dict,
                          email: str,
-                         subject: Optional[str] = None,
-                         message: Optional[str] = None) -> MIMEMultipart:
+                         subject: str | None = None,
+                         message: str | None = None) -> MIMEMultipart:
         """
         创建单本书籍的邮件对象
         
@@ -188,8 +188,8 @@ class BaseDistributor(ABC):
     async def create_books_email(self,
                           book_dicts: List[dict],
                           email: str,
-                          subject: Optional[str] = None,
-                          message: Optional[str] = None) -> MIMEMultipart:
+                          subject: str | None = None,
+                          message: str | None = None) -> MIMEMultipart:
         """
         创建多本书籍的邮件对象
         

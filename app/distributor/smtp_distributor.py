@@ -1,6 +1,6 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
-from typing import List, Optional
+from typing import List
 
 from loguru import logger
 
@@ -69,8 +69,8 @@ class SMTPDistributor(BaseDistributor):
     async def send_book(self, 
                        book_dict: dict, 
                        email: str,
-                       subject: Optional[str] = None,
-                       message: Optional[str] = None) -> bool:
+                       subject: str | None = None,
+                       message: str | None = None) -> bool:
         """发送单本书籍"""
         try:
             msg = await self.create_book_email(book_dict, email, subject, message)
@@ -82,8 +82,8 @@ class SMTPDistributor(BaseDistributor):
     async def send_books(self, 
                         book_dicts: List[dict], 
                         email: str,
-                        subject: Optional[str] = None,
-                        message: Optional[str] = None) -> bool:
+                        subject: str | None = None,
+                        message: str | None = None) -> bool:
         """批量发送多本书籍"""
         try:
             msg = await self.create_books_email(book_dicts, email, subject, message)

@@ -1,13 +1,13 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 class BaseUploader(ABC):
     """基础上传器接口"""
     
     @abstractmethod
-    def upload_file(self, file_path: str, key: Optional[str] = None) -> str:
+    def upload_file(self, file_path: str, key: str | None = None) -> str:
         """上传文件到云存储
         
         Args:
@@ -57,7 +57,7 @@ class BaseUploader(ABC):
         pass
     
     @abstractmethod
-    def list_files(self, prefix: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_files(self, prefix: str | None = None) -> List[Dict[str, Any]]:
         """列出文件
         
         Args:
@@ -93,7 +93,7 @@ class BaseUploader(ABC):
         pass
 
     def upload_and_get_url(self, file_path: str, 
-                          key: Optional[str] = None,
+                          key: str | None = None,
                           expires_in: int = 604800) -> str:
         """上传文件并获取预签名URL
         
@@ -107,8 +107,8 @@ class BaseUploader(ABC):
         """
         key = self.upload_file(file_path, key)
         return self.generate_url(key, expires_in)
-    
-    def get_url(self, file_path: Optional[str] = None, key: Optional[str] = None, expires_in: int = 604800) -> str:
+
+    def get_url(self, file_path: str | None = None, key: str | None = None, expires_in: int = 604800) -> str:
         if not key and not file_path:
             raise ValueError("key 和 file_path 不能同时为空")
         elif not key:

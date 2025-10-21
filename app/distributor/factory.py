@@ -11,6 +11,10 @@ def create_distributor(distributor_type: Literal['smtp'], *args, **kwargs) -> SM
 @overload
 def create_distributor(distributor_type: Literal['ses'], *args, **kwargs) -> SESDistributor:
     ...
+    
+@overload
+def create_distributor(distributor_type: str, *args, **kwargs) -> BaseDistributor:
+    ...
 
 def create_distributor(distributor_type: str, *args, **kwargs) -> BaseDistributor:
     """创建分发器实例

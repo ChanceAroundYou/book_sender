@@ -1,6 +1,6 @@
 import json
 from email.mime.multipart import MIMEMultipart
-from typing import List, Optional
+from typing import List
 
 import boto3
 from botocore.config import Config
@@ -165,8 +165,8 @@ class SESDistributor(BaseDistributor):
         self,
         book_dict: dict,
         email: str,
-        subject: Optional[str] = None,
-        message: Optional[str] = None,
+        subject: str | None = None,
+        message: str | None = None,
     ) -> bool:
         """发送单本书籍"""
         try:
@@ -180,8 +180,8 @@ class SESDistributor(BaseDistributor):
         self,
         book_dicts: List[dict],
         email: str,
-        subject: Optional[str] = None,
-        message: Optional[str] = None,
+        subject: str | None = None,
+        message: str | None = None,
     ) -> bool:
         """批量发送多本书籍"""
         try:

@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import UTC, datetime
-from typing import Generic, List, Literal, TypeVar, cast, overload
+from typing import Generic, List, TypeVar, cast
 
 from sqlalchemy import Column, DateTime, Integer, create_engine
 from sqlalchemy.orm import Session, declarative_base, object_session, sessionmaker
@@ -53,22 +53,8 @@ class ModelMixin(Generic[T], DictMixin):
     def db(self) -> Session:
         return object_session(self)
 
-    @overload
     @classmethod
-    def query(cls, db: Session, *, first: Literal[True], **kwargs) -> T | None: ...
-
-    @overload
-    @classmethod
-    def query(
-        cls, db: Session, *, first: Literal[False], **kwargs
-    ) -> List[T] | None: ...
-
-    @overload
-    @classmethod
-    def query(cls, db: Session, **kwargs) -> List[T] | None: ...
-
-    @classmethod
-    def query(cls, db: Session, *, first: bool = False, **kwargs) -> List[T] | T | None:
+    def query(cls, db: Session, **kwargs) -> List[T]:
         skip = kwargs.pop("skip", 0)
         limit = kwargs.pop("limit", None)
         order_by = kwargs.pop("order_by", "id")
@@ -127,14 +113,18 @@ class ModelMixin(Generic[T], DictMixin):
             if order_desc
             else getattr(cls, order_by).asc()
         ).offset(skip)
-        if first:
-            if result := query.limit(1).first():
-                return cast(T, result)
-            return None
+
         if limit:
             query = query.limit(limit)
         if result := query.all():
             return cast(List[T], result)
+        return []
+    
+    @classmethod
+    def query_first(cls, db: Session, **kwargs) -> T | None:
+        results = cls.query(db, **kwargs)
+        if results:
+            return results[0]
         return None
 
     @classmethod

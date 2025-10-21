@@ -45,8 +45,7 @@ async def distribute_book_api(
         if not email:
             return {"error": "未指定收件人邮箱"}
 
-        book = Book.query(db, first=True, **params)
-        if not book:
+        if not (book := Book.query_first(db, **params)):
             raise HTTPException(status_code=404, detail="Book not found")
 
         distribute_book_task.delay(book.to_dict(), email)
